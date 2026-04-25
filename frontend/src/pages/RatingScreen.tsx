@@ -1,204 +1,102 @@
 import { useState } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
-
-const STAGE_CONFIG = {
-  chat: { label: "Chat", icon: "💬", next: "/voice-call", pointsPer: 5 },
-  voice: { label: "Voice Call", icon: "📞", next: "/video-call", pointsPer: 6 },
-  video: { label: "Video Call", icon: "📹", next: "/reveal", pointsPer: 8 },
-};
+import { useNavigate } from "react-router-dom";
 
 export default function RatingScreen() {
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
-  const stage = (searchParams.get("stage") || "chat") as keyof typeof STAGE_CONFIG;
-  const config = STAGE_CONFIG[stage] || STAGE_CONFIG.chat;
-
   const [rating, setRating] = useState(0);
   const [hoveredStar, setHoveredStar] = useState(0);
   const [feedback, setFeedback] = useState("");
-  const [submitted, setSubmitted] = useState(false);
 
-  const basePoints = stage === "chat" ? 20 : stage === "voice" ? 40 : 60;
-  const earnedPoints = rating * config.pointsPer;
-  const newTotal = basePoints + earnedPoints;
-  const threshold = 80;
-  const isLastStage = stage === "video";
-  const reachedThreshold = isLastStage && newTotal >= threshold;
+  const ratingProgress = 72;
 
   const handleSubmit = () => {
-    setSubmitted(true);
-    setTimeout(() => {
-      if (reachedThreshold) {
-        navigate("/reveal");
-      } else {
-        navigate(config.next);
-      }
-    }, 2000);
+    if (rating === 0) return;
+    navigate("/voice-call");
   };
 
-  if (submitted) {
-    return (
-      <div className="screen" style={{ justifyContent: "center", gap: 16 }}>
-        <div style={{ fontSize: 48 }}>
-          {reachedThreshold ? "🎉" : "✨"}
-        </div>
-        <h2 style={{ fontSize: 24, fontWeight: 700 }}>
-          {reachedThreshold ? "Threshold Reached!" : "Rating Submitted!"}
-        </h2>
-        <p style={{ color: "var(--color-text-secondary)", textAlign: "center", maxWidth: 300 }}>
-          {reachedThreshold
-            ? "You've earned enough points to reveal your match's profile!"
-            : stage === "chat"
-              ? `Great chat! +${earnedPoints} points. Next up: Voice Call 📞`
-              : stage === "voice"
-                ? `Awesome call! +${earnedPoints} points. Next up: Video Call 📹`
-                : `+${earnedPoints} points. Total: ${newTotal}/${threshold}`}
-        </p>
-        <div className="progress-bar-container" style={{ marginTop: 16 }}>
-          <div
-            className="progress-bar-fill"
-            style={{ width: `${Math.min((newTotal / threshold) * 100, 100)}%` }}
-          />
-        </div>
-        <p style={{ fontSize: 14, color: "var(--color-accent)", fontWeight: 600 }}>
-          {newTotal} / {threshold} points
-        </p>
-      </div>
-    );
-  }
-
   return (
-    <div className="screen" style={{ justifyContent: "center", gap: 24 }}>
-      {/* Stage indicator */}
-      <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
-        {(["chat", "voice", "video"] as const).map((s, i) => (
-          <div key={s} style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <div
-              style={{
-                width: 32,
-                height: 32,
-                borderRadius: "50%",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                fontSize: 14,
-                background:
-                  s === stage
-                    ? "var(--color-primary)"
-                    : (["chat", "voice", "video"] as const).indexOf(s) < (["chat", "voice", "video"] as const).indexOf(stage)
-                      ? "var(--color-accent)"
-                      : "var(--color-border-light)",
-                color:
-                  s === stage || (["chat", "voice", "video"] as const).indexOf(s) < (["chat", "voice", "video"] as const).indexOf(stage)
-                    ? "#FFF"
-                    : "var(--color-text-muted)",
-              }}
-            >
-              {STAGE_CONFIG[s].icon}
-            </div>
-            {i < 2 && (
-              <div
-                style={{
-                  width: 24,
-                  height: 2,
-                  background:
-                    (["chat", "voice", "video"] as const).indexOf(s) < (["chat", "voice", "video"] as const).indexOf(stage)
-                      ? "var(--color-accent)"
-                      : "var(--color-border-light)",
-                }}
-              />
-            )}
-          </div>
-        ))}
-      </div>
-
-      <h2 style={{ fontSize: 24, fontWeight: 700 }}>
-        Rate Your {config.label}
-      </h2>
-      <p style={{ color: "var(--color-text-secondary)", textAlign: "center" }}>
-        How was your {config.label.toLowerCase()} experience?
+    <div className="screen" style={{ justifyContent: "center", gap: 20 }}>
+      <h1 style={{ fontSize: 32, fontWeight: 700, textAlign: "center", lineHeight: 1.2 }}>
+        How Was Your Conversation?
+      </h1>
+      <p style={{ color: "#888", fontSize: 15, textAlign: "center" }}>
+        Your rating helps us understand your preferences better
       </p>
 
-      {/* Stars */}
-      <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
-        {[1, 2, 3, 4, 5].map((star) => (
-          <button
-            key={star}
-            onClick={() => setRating(star)}
-            onMouseEnter={() => setHoveredStar(star)}
-            onMouseLeave={() => setHoveredStar(0)}
-            style={{
-              background: "none",
-              border: "none",
-              cursor: "pointer",
-              fontSize: 40,
-              color:
-                star <= (hoveredStar || rating)
-                  ? "var(--color-star)"
-                  : "var(--color-star-empty)",
-              transition: "transform 0.15s",
-              transform: star <= (hoveredStar || rating) ? "scale(1.15)" : "scale(1)",
-            }}
-          >
-            ★
-          </button>
-        ))}
-      </div>
+      <div
+        className="card"
+        style={{ padding: 24, textAlign: "center", marginTop: 8 }}
+      >
+        <p style={{ fontWeight: 600, fontSize: 15, marginBottom: 16 }}>Rate this conversation</p>
+        <div style={{ display: "flex", justifyContent: "center", gap: 8, marginBottom: 20 }}>
+          {[1, 2, 3, 4, 5].map((star) => (
+            <button
+              key={star}
+              onClick={() => setRating(star)}
+              onMouseEnter={() => setHoveredStar(star)}
+              onMouseLeave={() => setHoveredStar(0)}
+              style={{
+                background: "none",
+                border: "none",
+                cursor: "pointer",
+                fontSize: 36,
+                color: star <= (hoveredStar || rating) ? "#C4956A" : "#ddd",
+                transition: "color 0.15s",
+              }}
+            >
+              ★
+            </button>
+          ))}
+        </div>
 
-      {rating > 0 && (
-        <p style={{ fontSize: 14, color: "var(--color-accent)", fontWeight: 600 }}>
-          +{earnedPoints} points
+        <p style={{ fontWeight: 500, fontSize: 14, textAlign: "left", marginBottom: 8 }}>
+          Additional feedback (optional)
         </p>
-      )}
-
-      {/* Feedback */}
-      <div className="input-group" style={{ marginTop: 8 }}>
-        <label htmlFor="feedback">Feedback (optional)</label>
         <textarea
-          id="feedback"
-          className="input-field"
-          placeholder={`Tell us about your ${config.label.toLowerCase()} experience...`}
+          placeholder="What did you enjoy? What could be better?"
           value={feedback}
           onChange={(e) => setFeedback(e.target.value)}
-          rows={3}
-          style={{ resize: "none" }}
+          rows={4}
+          style={{
+            width: "100%",
+            padding: 12,
+            border: "1px solid #ddd",
+            borderRadius: 12,
+            fontSize: 14,
+            resize: "none",
+            outline: "none",
+            fontFamily: "inherit",
+          }}
         />
       </div>
 
-      {/* Progress preview */}
       <div style={{ width: "100%" }}>
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            marginBottom: 8,
-            fontSize: 13,
-          }}
-        >
-          <span style={{ color: "var(--color-text-secondary)" }}>Progress to Reveal</span>
-          <span style={{ color: "var(--color-accent)", fontWeight: 600 }}>
-            {newTotal} / {threshold}
-          </span>
+        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
+          <span style={{ fontSize: 14, fontWeight: 500 }}>Rating Progress</span>
+          <span style={{ fontSize: 14, fontWeight: 600 }}>{ratingProgress}/100</span>
         </div>
-        <div className="progress-bar-container">
+        <div style={{ width: "100%", height: 10, background: "#e8e8e8", borderRadius: 5, overflow: "hidden" }}>
           <div
-            className="progress-bar-fill"
-            style={{ width: `${Math.min((newTotal / threshold) * 100, 100)}%` }}
+            style={{
+              width: `${ratingProgress}%`,
+              height: "100%",
+              background: "linear-gradient(to right, var(--color-primary), #333)",
+              borderRadius: 5,
+            }}
           />
         </div>
+        <p style={{ fontSize: 12, color: "#999", marginTop: 6 }}>
+          Complete the Video Call to unlock profile photos
+        </p>
       </div>
 
       <button
         className="btn btn-primary"
         onClick={handleSubmit}
         disabled={rating === 0}
-        style={{ opacity: rating > 0 ? 1 : 0.5 }}
+        style={{ width: "100%", opacity: rating > 0 ? 1 : 0.5 }}
       >
         Submit Rating
-      </button>
-
-      <button className="btn-ghost" onClick={() => navigate(config.next)}>
-        Skip
       </button>
     </div>
   );

@@ -3,150 +3,92 @@ import { useNavigate } from "react-router-dom";
 
 export default function VoiceCallScreen() {
   const navigate = useNavigate();
-  const [callState, setCallState] = useState<"waiting" | "active" | "ended">("waiting");
-  const [duration, setDuration] = useState(0);
-  const [isMuted, setIsMuted] = useState(false);
+  const [seconds, setSeconds] = useState(0);
+  const [muted, setMuted] = useState(false);
 
   useEffect(() => {
-    const connectTimer = setTimeout(() => setCallState("active"), 2000);
-    return () => clearTimeout(connectTimer);
+    const timer = setInterval(() => {
+      setSeconds((prev) => prev + 1);
+    }, 1000);
+    return () => clearInterval(timer);
   }, []);
 
-  useEffect(() => {
-    if (callState !== "active") return;
-    const timer = setInterval(() => setDuration((prev) => prev + 1), 1000);
-    return () => clearInterval(timer);
-  }, [callState]);
-
-  const formatDuration = (seconds: number) => {
-    const m = Math.floor(seconds / 60);
-    const s = seconds % 60;
-    return `${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
+  const formatTime = (s: number) => {
+    const m = Math.floor(s / 60);
+    const sec = s % 60;
+    return `${m}:${sec.toString().padStart(2, "0")}`;
   };
 
-  const endCall = () => {
-    setCallState("ended");
-    setTimeout(() => navigate("/rating?stage=voice"), 1000);
+  const handleEndCall = () => {
+    navigate("/video-call");
   };
 
   return (
     <div
-      className="screen"
       style={{
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
         justifyContent: "center",
-        gap: 32,
-        background: "linear-gradient(180deg, var(--color-bg) 0%, var(--color-bg-secondary) 100%)",
+        height: "100vh",
+        maxWidth: 480,
+        margin: "0 auto",
+        background: "#333",
+        color: "#fff",
+        position: "relative",
       }}
     >
-      {/* Avatar */}
       <div
         style={{
-          width: 120,
-          height: 120,
+          width: 100,
+          height: 100,
           borderRadius: "50%",
-          background: "var(--color-bg-secondary)",
+          background: "#555",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          fontSize: 48,
-          border: callState === "active" ? "3px solid var(--color-accent)" : "3px solid var(--color-border)",
-          boxShadow: callState === "active" ? "0 0 0 8px rgba(196, 149, 106, 0.15)" : "none",
-          transition: "all 0.3s",
+          fontSize: 44,
+          marginBottom: 20,
         }}
       >
-        ?
+        📞
       </div>
 
-      <div style={{ textAlign: "center" }}>
-        <h2 style={{ fontSize: 22, fontWeight: 700, marginBottom: 4 }}>Mystery Match</h2>
-        <p style={{ color: "var(--color-text-secondary)", fontSize: 14 }}>
-          {callState === "waiting" && "Connecting..."}
-          {callState === "active" && "Voice Call Active"}
-          {callState === "ended" && "Call Ended"}
-        </p>
-      </div>
+      <h1 style={{ fontSize: 28, fontWeight: 700, marginBottom: 4 }}>Voice Call</h1>
+      <p style={{ color: "#aaa", fontSize: 16, marginBottom: 24 }}>Connected</p>
+      <p style={{ fontFamily: "monospace", fontSize: 24, fontWeight: 600, marginBottom: 60 }}>
+        {formatTime(seconds)}
+      </p>
 
-      {/* Timer */}
-      <div
-        style={{
-          fontFamily: "monospace",
-          fontSize: 36,
-          fontWeight: 700,
-          color: callState === "active" ? "var(--color-primary)" : "var(--color-text-muted)",
-          letterSpacing: 3,
-        }}
-      >
-        {callState === "waiting" ? (
-          <span style={{ fontSize: 20, fontFamily: "inherit" }}>🔔 Ringing...</span>
-        ) : (
-          formatDuration(duration)
-        )}
-      </div>
-
-      {/* Audio waveform visualization */}
-      {callState === "active" && (
-        <div style={{ display: "flex", gap: 3, alignItems: "center", height: 40 }}>
-          {Array.from({ length: 20 }).map((_, i) => (
-            <div
-              key={i}
-              style={{
-                width: 4,
-                borderRadius: 2,
-                background: "var(--color-accent)",
-                animation: `wave${i % 5} 1s ease-in-out ${i * 0.05}s infinite`,
-              }}
-            />
-          ))}
-        </div>
-      )}
-
-      {/* Controls */}
-      <div style={{ display: "flex", gap: 24 }}>
+      <div style={{ display: "flex", gap: 24, marginBottom: 24 }}>
         <button
-          onClick={() => setIsMuted(!isMuted)}
+          onClick={() => setMuted(!muted)}
           style={{
             width: 56,
             height: 56,
             borderRadius: "50%",
             border: "none",
-            background: isMuted ? "var(--color-error)" : "var(--color-bg-secondary)",
-            color: isMuted ? "#FFF" : "var(--color-text)",
-            fontSize: 20,
+            background: muted ? "#888" : "#555",
+            color: "#fff",
+            fontSize: 22,
             cursor: "pointer",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
           }}
         >
-          {isMuted ? "🔇" : "🎤"}
+          🎤
         </button>
         <button
-          onClick={() => navigate("/chat?stage=voice")}
+          onClick={handleEndCall}
           style={{
             width: 56,
             height: 56,
             borderRadius: "50%",
             border: "none",
-            background: "var(--color-bg-secondary)",
-            fontSize: 20,
-            cursor: "pointer",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-          }}
-        >
-          💬
-        </button>
-        <button
-          onClick={endCall}
-          style={{
-            width: 56,
-            height: 56,
-            borderRadius: "50%",
-            border: "none",
-            background: "var(--color-error)",
-            color: "#FFF",
-            fontSize: 20,
+            background: "#e53935",
+            color: "#fff",
+            fontSize: 22,
             cursor: "pointer",
             display: "flex",
             alignItems: "center",
@@ -157,13 +99,9 @@ export default function VoiceCallScreen() {
         </button>
       </div>
 
-      <style>{`
-        @keyframes wave0 { 0%, 100% { height: 8px; } 50% { height: 24px; } }
-        @keyframes wave1 { 0%, 100% { height: 8px; } 50% { height: 32px; } }
-        @keyframes wave2 { 0%, 100% { height: 8px; } 50% { height: 20px; } }
-        @keyframes wave3 { 0%, 100% { height: 8px; } 50% { height: 36px; } }
-        @keyframes wave4 { 0%, 100% { height: 8px; } 50% { height: 28px; } }
-      `}</style>
+      <p style={{ color: "#999", fontSize: 14, position: "absolute", bottom: 32 }}>
+        Complete this call to unlock video calling
+      </p>
     </div>
   );
 }

@@ -1,19 +1,17 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 
 interface Message {
   id: number;
   text: string;
-  sender: "user" | "match" | "system";
+  sender: "user" | "match";
   timestamp: string;
 }
 
 const CONVERSATION_STARTERS = [
-  "What's something you're passionate about that most people don't know?",
-  "If you could live anywhere for a year, where would it be?",
-  "What's the best conversation you've had recently?",
-  "What's your idea of a perfect weekend?",
-  "What's on your bucket list this year?",
+  "I saw we both love reading - what's a book that fundamentally changed your perspective?",
+  "Since you enjoy hiking too, what's the most memorable trail you've ever explored?",
+  "We both value creativity. What project are you most proud of working on recently?",
 ];
 
 const MATCH_REPLIES = [
@@ -25,30 +23,21 @@ const MATCH_REPLIES = [
   "That's a great answer. I think we'd get along really well.",
 ];
 
-const INITIAL_MESSAGES: Message[] = [
-  {
-    id: 0,
-    text: "Welcome to your blind conversation! You have 24 hours to chat. Be genuine — profiles are revealed at 80 points.",
-    sender: "system",
-    timestamp: "",
-  },
-  {
-    id: 1,
-    text: "Hey! I'm excited to chat. I see we both love music and travel — what's the last concert you went to?",
-    sender: "match",
-    timestamp: "2:01 PM",
-  },
+const STAGES = [
+  { key: "chat", label: "Text Chat", active: true },
+  { key: "voice", label: "Voice Call", active: false },
+  { key: "video", label: "Video Call", active: false },
+  { key: "reveal", label: "Reveal", active: false },
 ];
 
 export default function ChatScreen() {
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
-  const stage = searchParams.get("stage") || "chat";
-  const [messages, setMessages] = useState<Message[]>(INITIAL_MESSAGES);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
-  const [timeLeft, setTimeLeft] = useState(86400);
+  const [timeLeft, setTimeLeft] = useState(3600);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const nextId = useRef(100);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -62,13 +51,10 @@ export default function ChatScreen() {
   }, [messages]);
 
   const formatTime = (seconds: number) => {
-    const h = Math.floor(seconds / 3600);
-    const m = Math.floor((seconds % 3600) / 60);
+    const m = Math.floor(seconds / 60);
     const s = seconds % 60;
-    return `${h.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
+    return `${m}:${s.toString().padStart(2, "0")}`;
   };
-
-  const nextId = useRef(100);
 
   const sendMessage = useCallback((text: string) => {
     if (!text.trim()) return;
@@ -84,7 +70,6 @@ export default function ChatScreen() {
     setInput("");
     inputRef.current?.focus();
 
-    const delay = 1500;
     const replyIndex = id % MATCH_REPLIES.length;
     setTimeout(() => {
       const replyTime = new Date();
@@ -95,7 +80,7 @@ export default function ChatScreen() {
         timestamp: replyTime.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }),
       };
       setMessages((prev) => [...prev, reply]);
-    }, delay);
+    }, 1500);
   }, []);
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -103,157 +88,171 @@ export default function ChatScreen() {
     sendMessage(input);
   };
 
-  const stageLabel = stage === "voice" ? "Voice Call Chat" : stage === "video" ? "Video Call Chat" : "Chat";
-  const ratingPath = `/rating?stage=${stage}`;
-
   return (
-    <div style={{ display: "flex", flexDirection: "column", height: "100vh", maxWidth: 480, margin: "0 auto" }}>
+    <div style={{ display: "flex", flexDirection: "column", height: "100vh", maxWidth: 480, margin: "0 auto", background: "#fff" }}>
       {/* Header */}
       <div
         style={{
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
-          padding: "12px 20px",
-          borderBottom: "1px solid var(--color-border-light)",
-          background: "var(--color-bg)",
+          padding: "14px 20px",
+          borderBottom: "1px solid #eee",
         }}
       >
-        <button className="back-btn" style={{ marginBottom: 0 }} onClick={() => navigate("/dashboard")}>
+        <button
+          onClick={() => navigate("/dashboard")}
+          style={{ background: "none", border: "none", fontSize: 20, cursor: "pointer" }}
+        >
           ←
         </button>
-        <div style={{ textAlign: "center", flex: 1 }}>
-          <div style={{ fontWeight: 600, fontSize: 16 }}>Mystery Match</div>
-          <div style={{ fontSize: 11, color: "var(--color-text-muted)" }}>{stageLabel}</div>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <span style={{ fontSize: 16 }}>🕐</span>
+          <span style={{ fontFamily: "monospace", fontSize: 18, fontWeight: 600 }}>
+            {formatTime(timeLeft)}
+          </span>
         </div>
         <button
-          className="btn-ghost"
-          style={{ fontSize: 12, color: "var(--color-error)" }}
-          onClick={() => navigate(ratingPath)}
+          onClick={() => navigate("/rating")}
+          style={{ background: "none", border: "none", fontSize: 18, cursor: "pointer" }}
         >
-          End
+          ✕
         </button>
       </div>
 
-      {/* Timer bar */}
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          gap: 8,
-          padding: "10px 20px",
-          background: "var(--color-bg-secondary)",
-          borderBottom: "1px solid var(--color-border-light)",
-        }}
-      >
-        <span style={{ fontSize: 18 }}>⏱</span>
-        <span
-          style={{
-            fontFamily: "monospace",
-            fontSize: 20,
-            fontWeight: 700,
-            color: timeLeft < 3600 ? "var(--color-error)" : "var(--color-primary)",
-            letterSpacing: 2,
-          }}
-        >
-          {formatTime(timeLeft)}
-        </span>
-        <span style={{ fontSize: 12, color: "var(--color-text-muted)" }}>remaining</span>
+      {/* Connection Progress */}
+      <div style={{ padding: "16px 20px", borderBottom: "1px solid #eee" }}>
+        <div className="card" style={{ padding: 16 }}>
+          <p style={{ fontSize: 13, fontWeight: 600, color: "#666", marginBottom: 12 }}>Connection Progress</p>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            {STAGES.map((s, i) => (
+              <div key={s.key} style={{ display: "flex", alignItems: "center" }}>
+                <div style={{ textAlign: "center" }}>
+                  <div
+                    style={{
+                      width: 40,
+                      height: 40,
+                      borderRadius: "50%",
+                      background: s.active ? "var(--color-primary)" : "#e8e8e8",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      margin: "0 auto 4px",
+                      fontSize: 16,
+                      color: s.active ? "#fff" : "#999",
+                    }}
+                  >
+                    {s.key === "chat" ? "💬" : s.key === "voice" ? "📞" : s.key === "video" ? "📹" : "👁"}
+                  </div>
+                  <span style={{ fontSize: 10, color: s.active ? "var(--color-primary)" : "#999" }}>
+                    {s.label}
+                  </span>
+                </div>
+                {i < STAGES.length - 1 && (
+                  <div style={{ width: 20, height: 2, background: "#e0e0e0", margin: "0 2px", marginBottom: 16 }} />
+                )}
+              </div>
+            ))}
+          </div>
+          <p style={{ fontSize: 12, color: "#999", textAlign: "center", marginTop: 8 }}>
+            Complete this chat with a good rating to unlock voice calls
+          </p>
+        </div>
       </div>
 
-      {/* Messages */}
-      <div
-        style={{
-          flex: 1,
-          overflowY: "auto",
-          padding: "16px 20px",
-          display: "flex",
-          flexDirection: "column",
-          gap: 12,
-        }}
-      >
+      {/* Messages area */}
+      <div style={{ flex: 1, overflowY: "auto", padding: "16px 20px" }}>
+        {messages.length === 0 && (
+          <div className="card" style={{ padding: 20, marginBottom: 16 }}>
+            <h3 style={{ fontSize: 16, fontWeight: 600, marginBottom: 16 }}>Conversation Starters</h3>
+            {CONVERSATION_STARTERS.map((starter, i) => (
+              <button
+                key={i}
+                onClick={() => sendMessage(starter)}
+                style={{
+                  display: "block",
+                  width: "100%",
+                  padding: "14px 16px",
+                  border: "1px solid #eee",
+                  borderRadius: 12,
+                  background: "#fff",
+                  textAlign: "left",
+                  fontSize: 14,
+                  lineHeight: 1.5,
+                  cursor: "pointer",
+                  marginBottom: i < CONVERSATION_STARTERS.length - 1 ? 8 : 0,
+                }}
+              >
+                {starter}
+              </button>
+            ))}
+          </div>
+        )}
+
         {messages.map((msg) => (
           <div
             key={msg.id}
             style={{
-              alignSelf:
-                msg.sender === "user"
-                  ? "flex-end"
-                  : msg.sender === "system"
-                    ? "center"
-                    : "flex-start",
-              maxWidth: msg.sender === "system" ? "90%" : "75%",
+              display: "flex",
+              justifyContent: msg.sender === "user" ? "flex-end" : "flex-start",
+              marginBottom: 12,
             }}
           >
             <div
               style={{
-                padding: msg.sender === "system" ? "10px 16px" : "12px 16px",
-                borderRadius:
-                  msg.sender === "user"
-                    ? "18px 18px 4px 18px"
-                    : msg.sender === "system"
-                      ? "12px"
-                      : "18px 18px 18px 4px",
-                background:
-                  msg.sender === "user"
-                    ? "var(--color-primary)"
-                    : msg.sender === "system"
-                      ? "var(--color-bg-secondary)"
-                      : "#F0F0F0",
-                color:
-                  msg.sender === "user"
-                    ? "#FFFFFF"
-                    : msg.sender === "system"
-                      ? "var(--color-text-secondary)"
-                      : "var(--color-text)",
-                fontSize: msg.sender === "system" ? 13 : 15,
-                textAlign: msg.sender === "system" ? "center" : "left",
-                fontStyle: msg.sender === "system" ? "italic" : "normal",
+                maxWidth: "75%",
+                padding: "10px 14px",
+                borderRadius: 16,
+                background: msg.sender === "user" ? "var(--color-primary)" : "#f0f0f0",
+                color: msg.sender === "user" ? "#fff" : "#333",
+                fontSize: 14,
+                lineHeight: 1.5,
               }}
             >
               {msg.text}
-            </div>
-            {msg.timestamp && (
               <div
                 style={{
-                  fontSize: 11,
-                  color: "var(--color-text-muted)",
+                  fontSize: 10,
+                  opacity: 0.7,
                   marginTop: 4,
                   textAlign: msg.sender === "user" ? "right" : "left",
                 }}
               >
                 {msg.timestamp}
               </div>
-            )}
+            </div>
           </div>
         ))}
         <div ref={messagesEndRef} />
-      </div>
 
-      {/* Conversation starters */}
-      <div
-        style={{
-          padding: "8px 20px",
-          borderTop: "1px solid var(--color-border-light)",
-          background: "var(--color-bg-secondary)",
-        }}
-      >
-        <p style={{ fontSize: 11, color: "var(--color-text-muted)", marginBottom: 6 }}>
-          Conversation starters:
-        </p>
-        <div style={{ display: "flex", gap: 8, overflowX: "auto", paddingBottom: 4 }}>
-          {CONVERSATION_STARTERS.map((starter, i) => (
-            <button
-              key={i}
-              className="chip"
-              style={{ whiteSpace: "nowrap", flexShrink: 0, fontSize: 12 }}
-              onClick={() => sendMessage(starter)}
-            >
-              {starter.length > 35 ? starter.slice(0, 35) + "…" : starter}
-            </button>
-          ))}
-        </div>
+        {messages.length > 0 && (
+          <div style={{ padding: "8px 0" }}>
+            <p style={{ fontSize: 12, color: "#999", marginBottom: 8 }}>Conversation Starters</p>
+            <div style={{ display: "flex", gap: 8, overflowX: "auto", paddingBottom: 4 }}>
+              {CONVERSATION_STARTERS.map((starter, i) => (
+                <button
+                  key={i}
+                  onClick={() => sendMessage(starter)}
+                  style={{
+                    flexShrink: 0,
+                    padding: "8px 14px",
+                    border: "1px solid #eee",
+                    borderRadius: 20,
+                    background: "#fff",
+                    fontSize: 12,
+                    cursor: "pointer",
+                    whiteSpace: "nowrap",
+                    maxWidth: 200,
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                  }}
+                >
+                  {starter}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Input */}
@@ -261,36 +260,46 @@ export default function ChatScreen() {
         onSubmit={handleSubmit}
         style={{
           display: "flex",
-          gap: 10,
-          padding: "14px 20px",
-          borderTop: "1px solid var(--color-border-light)",
-          background: "var(--color-bg)",
+          alignItems: "center",
+          gap: 12,
+          padding: "12px 20px",
+          borderTop: "1px solid #eee",
+          background: "#fff",
         }}
       >
         <input
           ref={inputRef}
           type="text"
-          className="input-field"
           placeholder="Type your message..."
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          style={{ flex: 1, fontSize: 16 }}
-          autoFocus
+          style={{
+            flex: 1,
+            padding: "12px 16px",
+            border: "1px solid #ddd",
+            borderRadius: 24,
+            fontSize: 14,
+            outline: "none",
+          }}
         />
         <button
           type="submit"
-          className="btn btn-primary"
-          style={{
-            width: 48,
-            height: 48,
-            padding: 0,
-            borderRadius: "50%",
-            fontSize: 20,
-            flexShrink: 0,
-          }}
           disabled={!input.trim()}
+          style={{
+            width: 40,
+            height: 40,
+            borderRadius: "50%",
+            border: "none",
+            background: input.trim() ? "var(--color-primary)" : "#ddd",
+            color: "#fff",
+            fontSize: 18,
+            cursor: input.trim() ? "pointer" : "default",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
         >
-          ↑
+          ➤
         </button>
       </form>
     </div>

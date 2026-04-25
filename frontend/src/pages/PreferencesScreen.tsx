@@ -1,14 +1,10 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import BlinkLogo from "../components/BlinkLogo";
 
-const GENDER_OPTIONS = ["Women", "Men", "Everyone"];
+const GENDER_OPTIONS = ["Women", "Men", "Non-binary"];
 
-const RELATIONSHIP_TYPE_OPTIONS = [
-  "Long-term relationship",
-  "Something casual",
-  "Still figuring it out",
-  "Prefer not to say",
-];
+const RELATIONSHIP_TYPE_OPTIONS = ["Monogamy", "Polyamory", "Open to Either"];
 
 const INTEREST_OPTIONS = [
   "Music", "Travel", "Cooking", "Fitness", "Reading",
@@ -54,244 +50,249 @@ const INSTRUMENT_OPTIONS = [
   "Ukulele — cheerful, lighthearted, and fun",
 ];
 
-interface StepConfig {
-  title: string;
-  subtitle: string;
-  type: "single" | "multi" | "range";
-  options?: string[];
-  stateKey: string;
-  minSelect?: number;
-}
-
-const STEPS: StepConfig[] = [
-  {
-    title: "I'm interested in",
-    subtitle: "Who would you like to connect with?",
-    type: "single",
-    options: GENDER_OPTIONS,
-    stateKey: "gender",
-  },
-  {
-    title: "What are you looking for?",
-    subtitle: "What type of relationship interests you?",
-    type: "single",
-    options: RELATIONSHIP_TYPE_OPTIONS,
-    stateKey: "relationshipType",
-  },
-  {
-    title: "Age Range",
-    subtitle: "What age range are you looking for?",
-    type: "range",
-    stateKey: "ageRange",
-  },
-  {
-    title: "Your Interests",
-    subtitle: "Select at least 3 interests",
-    type: "multi",
-    options: INTEREST_OPTIONS,
-    stateKey: "interests",
-    minSelect: 3,
-  },
-  {
-    title: "What does a relationship mean to you?",
-    subtitle: "Pick the one that resonates most",
-    type: "single",
-    options: RELATIONSHIP_MEANING_OPTIONS,
-    stateKey: "relationshipMeaning",
-  },
-  {
-    title: "How do you approach spending time with your partner?",
-    subtitle: "What's your ideal way to connect?",
-    type: "single",
-    options: SPENDING_TIME_OPTIONS,
-    stateKey: "spendingTime",
-  },
-  {
-    title: "During a disagreement with your partner, you're more likely to:",
-    subtitle: "Be honest — there's no wrong answer!",
-    type: "single",
-    options: DISAGREEMENT_OPTIONS,
-    stateKey: "disagreement",
-  },
-  {
-    title: "You're on a stranded island — what's the first thing you do?",
-    subtitle: "This says more about you than you think",
-    type: "single",
-    options: STRANDED_ISLAND_OPTIONS,
-    stateKey: "strandedIsland",
-  },
-  {
-    title: "What musical instrument would you be?",
-    subtitle: "Pick the one that matches your vibe",
-    type: "single",
-    options: INSTRUMENT_OPTIONS,
-    stateKey: "instrument",
-  },
-];
+const TOTAL_STEPS = 6;
 
 export default function PreferencesScreen() {
   const navigate = useNavigate();
   const [step, setStep] = useState(0);
-  const [answers, setAnswers] = useState<Record<string, string | string[] | { min: number; max: number }>>({
-    gender: "",
-    relationshipType: "",
-    ageRange: { min: 18, max: 30 },
-    interests: [],
-    relationshipMeaning: "",
-    spendingTime: "",
-    disagreement: "",
-    strandedIsland: "",
-    instrument: "",
-  });
+  const [genderPrefs, setGenderPrefs] = useState<string[]>([]);
+  const [relationshipType, setRelationshipType] = useState("");
+  const [interests, setInterests] = useState<string[]>([]);
+  const [relationshipMeaning, setRelationshipMeaning] = useState("");
+  const [spendingTime, setSpendingTime] = useState("");
+  const [disagreement, setDisagreement] = useState("");
+  const [strandedIsland, setStrandedIsland] = useState("");
+  const [instrument, setInstrument] = useState("");
 
-  const totalSteps = STEPS.length;
-  const progress = ((step + 1) / totalSteps) * 100;
-  const currentStep = STEPS[step];
-
-  const getAnswer = (key: string) => answers[key];
-  const setAnswer = (key: string, value: string | string[] | { min: number; max: number }) => {
-    setAnswers((prev) => ({ ...prev, [key]: value }));
+  const toggleGender = (g: string) => {
+    setGenderPrefs((prev) =>
+      prev.includes(g) ? prev.filter((v) => v !== g) : [...prev, g]
+    );
   };
 
-  const toggleMulti = (key: string, value: string) => {
-    const current = (getAnswer(key) as string[]) || [];
-    if (current.includes(value)) {
-      setAnswer(key, current.filter((v) => v !== value));
-    } else {
-      setAnswer(key, [...current, value]);
+  const toggleInterest = (i: string) => {
+    setInterests((prev) =>
+      prev.includes(i) ? prev.filter((v) => v !== i) : [...prev, i]
+    );
+  };
+
+  const canProceed = () => {
+    switch (step) {
+      case 0: return genderPrefs.length > 0 && relationshipType !== "";
+      case 1: return interests.length >= 3;
+      case 2: return relationshipMeaning !== "";
+      case 3: return spendingTime !== "";
+      case 4: return disagreement !== "";
+      case 5: return strandedIsland !== "" && instrument !== "";
+      default: return false;
     }
   };
 
   const handleNext = () => {
-    if (step < totalSteps - 1) {
+    if (step < TOTAL_STEPS - 1) {
       setStep(step + 1);
     } else {
       navigate("/dashboard");
     }
   };
 
-  const canProceed = () => {
-    const answer = getAnswer(currentStep.stateKey);
-    if (currentStep.type === "single") return answer !== "";
-    if (currentStep.type === "multi") {
-      return (answer as string[]).length >= (currentStep.minSelect || 1);
-    }
-    if (currentStep.type === "range") return true;
-    return false;
-  };
+  const renderSingleSelect = (
+    options: string[],
+    value: string,
+    onChange: (v: string) => void
+  ) => (
+    <div style={{ display: "flex", flexDirection: "column", gap: 10, width: "100%" }}>
+      {options.map((option) => (
+        <button
+          key={option}
+          onClick={() => onChange(option)}
+          style={{
+            padding: "14px 20px",
+            border: value === option ? "2px solid var(--color-primary)" : "1px solid #ddd",
+            borderRadius: 12,
+            background: value === option ? "var(--color-primary-light)" : "#fff",
+            textAlign: "left",
+            fontSize: 15,
+            cursor: "pointer",
+            fontWeight: value === option ? 600 : 400,
+          }}
+        >
+          {option}
+        </button>
+      ))}
+    </div>
+  );
 
   return (
-    <div className="screen">
-      <button className="back-btn" onClick={() => (step > 0 ? setStep(step - 1) : navigate(-1))}>
-        ← Back
-      </button>
-
-      <div style={{ display: "flex", alignItems: "center", gap: 8, width: "100%", marginBottom: 24 }}>
-        <div className="progress-bar-container">
-          <div className="progress-bar-fill" style={{ width: `${progress}%` }} />
-        </div>
-        <span style={{ fontSize: 12, color: "var(--color-text-muted)", whiteSpace: "nowrap" }}>
-          {step + 1}/{totalSteps}
-        </span>
+    <div className="screen" style={{ paddingTop: 16 }}>
+      <div style={{ display: "flex", justifyContent: "flex-end", width: "100%", marginBottom: 8 }}>
+        <button
+          onClick={() => navigate("/dashboard")}
+          style={{ background: "none", border: "none", color: "var(--color-primary)", fontSize: 14, cursor: "pointer", fontWeight: 500 }}
+        >
+          Save &amp; Exit
+        </button>
       </div>
 
-      <h2 style={{ fontSize: 22, fontWeight: 700, marginBottom: 8, textAlign: "center" }}>
-        {currentStep.title}
-      </h2>
-      <p style={{ color: "var(--color-text-secondary)", marginBottom: 24, textAlign: "center", fontSize: 15 }}>
-        {currentStep.subtitle}
-      </p>
+      <BlinkLogo size={60} />
 
-      {/* Single select */}
-      {currentStep.type === "single" && currentStep.options && (
-        <div style={{ display: "flex", flexDirection: "column", gap: 10, width: "100%" }}>
-          {currentStep.options.map((option) => (
-            <button
-              key={option}
-              className={`chip ${getAnswer(currentStep.stateKey) === option ? "selected" : ""}`}
-              onClick={() => setAnswer(currentStep.stateKey, option)}
+      <h2 style={{ fontSize: 24, fontWeight: 700, marginTop: 12, marginBottom: 16 }}>
+        Build Your Profile
+      </h2>
+
+      {/* Progress dots */}
+      <div style={{ display: "flex", gap: 8, marginBottom: 24 }}>
+        {Array.from({ length: TOTAL_STEPS }).map((_, i) => (
+          <div
+            key={i}
+            style={{
+              width: 40,
+              height: 6,
+              borderRadius: 3,
+              background: i <= step ? "var(--color-primary)" : "#e0e0e0",
+              transition: "background 0.3s",
+            }}
+          />
+        ))}
+      </div>
+
+      <div style={{ width: "100%", flex: 1, overflowY: "auto" }}>
+        {/* Step 1: Gender + Relationship Type */}
+        {step === 0 && (
+          <>
+            <h3 style={{ fontSize: 18, fontWeight: 600, marginBottom: 4 }}>I&apos;m interested in</h3>
+            <p style={{ color: "#888", fontSize: 14, marginBottom: 12 }}>Select all that apply</p>
+            <div style={{ display: "flex", gap: 10, marginBottom: 24 }}>
+              {GENDER_OPTIONS.map((g) => (
+                <button
+                  key={g}
+                  onClick={() => toggleGender(g)}
+                  style={{
+                    flex: 1,
+                    padding: "12px 8px",
+                    border: genderPrefs.includes(g) ? "2px solid var(--color-primary)" : "1px solid #ddd",
+                    borderRadius: 12,
+                    background: genderPrefs.includes(g) ? "var(--color-primary-light)" : "#fff",
+                    fontSize: 14,
+                    fontWeight: genderPrefs.includes(g) ? 600 : 400,
+                    cursor: "pointer",
+                  }}
+                >
+                  {g}
+                </button>
+              ))}
+            </div>
+
+            <h3 style={{ fontSize: 18, fontWeight: 600, marginBottom: 4 }}>Relationship Type</h3>
+            <p style={{ color: "#888", fontSize: 14, marginBottom: 12 }}>What are you looking for?</p>
+            {renderSingleSelect(RELATIONSHIP_TYPE_OPTIONS, relationshipType, setRelationshipType)}
+
+            <div
               style={{
-                justifyContent: "flex-start",
-                padding: "14px 20px",
-                fontSize: 15,
-                textAlign: "left",
-                lineHeight: 1.4,
+                marginTop: 24,
+                padding: 16,
+                background: "#f9f7f5",
+                borderRadius: 12,
+                border: "1px solid #eee",
               }}
             >
-              {option}
-            </button>
-          ))}
-        </div>
-      )}
+              <p style={{ fontWeight: 600, fontSize: 14, marginBottom: 4 }}>Safe &amp; Secure Dating</p>
+              <p style={{ fontSize: 13, color: "#666", lineHeight: 1.5 }}>
+                All profiles undergo background verification to ensure a safe community. We verify
+                identity and screen for safety concerns.
+              </p>
+            </div>
+          </>
+        )}
 
-      {/* Multi select */}
-      {currentStep.type === "multi" && currentStep.options && (
-        <>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
-            {currentStep.options.map((option) => (
-              <button
-                key={option}
-                className={`chip ${(getAnswer(currentStep.stateKey) as string[]).includes(option) ? "selected" : ""}`}
-                onClick={() => toggleMulti(currentStep.stateKey, option)}
-              >
-                {option}
-              </button>
-            ))}
-          </div>
-          <p style={{ color: "var(--color-text-muted)", fontSize: 13, marginTop: 12 }}>
-            {(getAnswer(currentStep.stateKey) as string[]).length} of {currentStep.minSelect} minimum selected
-          </p>
-        </>
-      )}
+        {/* Step 2: Interests */}
+        {step === 1 && (
+          <>
+            <h3 style={{ fontSize: 18, fontWeight: 600, marginBottom: 4 }}>Your Interests</h3>
+            <p style={{ color: "#888", fontSize: 14, marginBottom: 12 }}>Select at least 3 interests</p>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
+              {INTEREST_OPTIONS.map((option) => (
+                <button
+                  key={option}
+                  className={`chip ${interests.includes(option) ? "selected" : ""}`}
+                  onClick={() => toggleInterest(option)}
+                >
+                  {option}
+                </button>
+              ))}
+            </div>
+            <p style={{ color: "#888", fontSize: 13, marginTop: 12 }}>
+              {interests.length} of 3 minimum selected
+            </p>
+          </>
+        )}
 
-      {/* Range select */}
-      {currentStep.type === "range" && (
-        <div style={{ display: "flex", gap: 16, width: "100%", alignItems: "center" }}>
-          <div className="input-group" style={{ flex: 1 }}>
-            <label htmlFor="min-age">Min</label>
-            <input
-              id="min-age"
-              type="number"
-              className="input-field"
-              min="18"
-              max="99"
-              value={(getAnswer("ageRange") as { min: number; max: number }).min}
-              onChange={(e) =>
-                setAnswer("ageRange", {
-                  ...(getAnswer("ageRange") as { min: number; max: number }),
-                  min: Number(e.target.value),
-                })
-              }
-            />
-          </div>
-          <span style={{ color: "var(--color-text-muted)", marginTop: 20 }}>—</span>
-          <div className="input-group" style={{ flex: 1 }}>
-            <label htmlFor="max-age">Max</label>
-            <input
-              id="max-age"
-              type="number"
-              className="input-field"
-              min="18"
-              max="99"
-              value={(getAnswer("ageRange") as { min: number; max: number }).max}
-              onChange={(e) =>
-                setAnswer("ageRange", {
-                  ...(getAnswer("ageRange") as { min: number; max: number }),
-                  max: Number(e.target.value),
-                })
-              }
-            />
-          </div>
-        </div>
-      )}
+        {/* Step 3: Relationship meaning */}
+        {step === 2 && (
+          <>
+            <h3 style={{ fontSize: 18, fontWeight: 600, marginBottom: 4 }}>
+              What does a relationship mean to you?
+            </h3>
+            <p style={{ color: "#888", fontSize: 14, marginBottom: 12 }}>Pick the one that resonates most</p>
+            {renderSingleSelect(RELATIONSHIP_MEANING_OPTIONS, relationshipMeaning, setRelationshipMeaning)}
+          </>
+        )}
+
+        {/* Step 4: Spending time */}
+        {step === 3 && (
+          <>
+            <h3 style={{ fontSize: 18, fontWeight: 600, marginBottom: 4 }}>
+              How do you approach spending time with your partner?
+            </h3>
+            <p style={{ color: "#888", fontSize: 14, marginBottom: 12 }}>
+              What&apos;s your ideal way to connect?
+            </p>
+            {renderSingleSelect(SPENDING_TIME_OPTIONS, spendingTime, setSpendingTime)}
+          </>
+        )}
+
+        {/* Step 5: Disagreement */}
+        {step === 4 && (
+          <>
+            <h3 style={{ fontSize: 18, fontWeight: 600, marginBottom: 4 }}>
+              During a disagreement with your partner, you&apos;re more likely to:
+            </h3>
+            <p style={{ color: "#888", fontSize: 14, marginBottom: 12 }}>
+              Be honest — there&apos;s no wrong answer!
+            </p>
+            {renderSingleSelect(DISAGREEMENT_OPTIONS, disagreement, setDisagreement)}
+          </>
+        )}
+
+        {/* Step 6: Stranded Island + Musical Instrument */}
+        {step === 5 && (
+          <>
+            <h3 style={{ fontSize: 18, fontWeight: 600, marginBottom: 4 }}>
+              You&apos;re on a stranded island — what&apos;s the first thing you do?
+            </h3>
+            <p style={{ color: "#888", fontSize: 14, marginBottom: 12 }}>
+              This says more about you than you think
+            </p>
+            {renderSingleSelect(STRANDED_ISLAND_OPTIONS, strandedIsland, setStrandedIsland)}
+
+            <h3 style={{ fontSize: 18, fontWeight: 600, marginTop: 24, marginBottom: 4 }}>
+              What musical instrument would you be?
+            </h3>
+            <p style={{ color: "#888", fontSize: 14, marginBottom: 12 }}>
+              Pick the one that matches your vibe
+            </p>
+            {renderSingleSelect(INSTRUMENT_OPTIONS, instrument, setInstrument)}
+          </>
+        )}
+      </div>
 
       <button
         className="btn btn-primary"
         onClick={handleNext}
         disabled={!canProceed()}
-        style={{ marginTop: 32, opacity: canProceed() ? 1 : 0.5 }}
+        style={{ marginTop: 24, opacity: canProceed() ? 1 : 0.5 }}
       >
-        {step < totalSteps - 1 ? "Continue" : "Find My Match"}
+        {step < TOTAL_STEPS - 1 ? "Continue  ›" : "Find My Match"}
       </button>
     </div>
   );
