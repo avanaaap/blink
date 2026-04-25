@@ -1,22 +1,38 @@
+-- Enum types
+CREATE TYPE gender_option        AS ENUM ('Women', 'Men', 'Non-binary');
+CREATE TYPE relationship_type    AS ENUM ('Monogamy', 'Polyamory', 'Open to Either');
+CREATE TYPE interest_option      AS ENUM ('Travel', 'Music', 'Art', 'Sports', 'Cooking', 'Reading', 'Technology', 'Fitness', 'Movies', 'Photography', 'Gaming', 'Nature');
+CREATE TYPE relationship_value   AS ENUM ('Emotional support', 'Quality time', 'Trust & connection', 'Shared experiences', 'Commitment', 'Physical affection');
+CREATE TYPE time_with_partner    AS ENUM ('Mostly together', 'Balanced', 'Need personal space', 'Depends on the relationship');
+CREATE TYPE conflict_style       AS ENUM ('Talk it out right away', 'Take space, then come back to it', 'Avoid it / keep the peace');
+CREATE TYPE island_scenario      AS ENUM ('Cry', 'Explore the island for resources', 'Try to signal for help', 'Stay calm and make a plan');
+CREATE TYPE musical_instrument   AS ENUM ('Guitar', 'Piccolo', 'Tuba', 'Saxophone', 'Flute', 'Clarinet');
+CREATE TYPE sexuality_option     AS ENUM ('Straight', 'Gay', 'Lesbian', 'Bisexual', 'Pansexual', 'Asexual', 'Prefer not to say');
+CREATE TYPE spending_habit       AS ENUM ('Frugal / Saver', 'Balanced', 'Enjoy spending', 'Live in the moment');
+CREATE TYPE debt_status          AS ENUM ('No debt', 'Student loans', 'Credit card debt', 'Prefer not to say');
+CREATE TYPE kids_preference      AS ENUM ('Yes', 'No', 'Maybe / Open to it', 'Already have kids');
+CREATE TYPE match_status         AS ENUM ('active', 'completed', 'expired', 'declined');
+CREATE TYPE interaction_type     AS ENUM ('chat', 'voice', 'video');
+
 -- 1. profiles
 CREATE TABLE IF NOT EXISTS profiles (
   id                   uuid PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
   name                 text NOT NULL,
   age                  integer NOT NULL CHECK (age >= 18),
-  sexuality            text,
-  interested_in        text[] DEFAULT '{}',
-  relationship_type    text,
+  sexuality            sexuality_option,
+  interested_in        gender_option[] DEFAULT '{}',
+  relationship_type    relationship_type,
   age_range_min        integer DEFAULT 18,
   age_range_max        integer DEFAULT 80,
-  interests            text[] DEFAULT '{}',
-  relationship_meaning text[] DEFAULT '{}',
-  time_with_partner    text[] DEFAULT '{}',
-  conflict_style       text,
-  island_scenario      text,
-  musical_instrument   text,
-  spending_habits      text,
-  has_debt             text,
-  wants_kids           text,
+  interests            interest_option[] DEFAULT '{}',
+  relationship_meaning relationship_value[] DEFAULT '{}',
+  time_with_partner    time_with_partner[] DEFAULT '{}',
+  conflict_style       conflict_style,
+  island_scenario      island_scenario,
+  musical_instrument   musical_instrument,
+  spending_habits      spending_habit,
+  has_debt             debt_status,
+  wants_kids           kids_preference,
   notifications_enabled boolean DEFAULT true,
   pause_matches        boolean DEFAULT false,
   worldid_verified     boolean DEFAULT false,
@@ -41,9 +57,9 @@ CREATE TABLE IF NOT EXISTS matches (
   user_a              uuid NOT NULL REFERENCES profiles(id),
   user_b              uuid NOT NULL REFERENCES profiles(id),
   compatibility_score integer CHECK (compatibility_score BETWEEN 0 AND 100),
-  shared_interests    text[] DEFAULT '{}',
+  shared_interests    interest_option[] DEFAULT '{}',
   match_date          date NOT NULL DEFAULT CURRENT_DATE,
-  status              text DEFAULT 'active' CHECK (status IN ('active','completed','expired','declined')),
+  status              match_status DEFAULT 'active',
   unlock_level        integer DEFAULT 0 CHECK (unlock_level BETWEEN 0 AND 3),
   created_at          timestamptz DEFAULT now(),
   UNIQUE (user_a, user_b, match_date),
@@ -54,7 +70,7 @@ CREATE TABLE IF NOT EXISTS matches (
 CREATE TABLE IF NOT EXISTS interactions (
   id               uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   match_id         uuid NOT NULL REFERENCES matches(id) ON DELETE CASCADE,
-  interaction_type text NOT NULL CHECK (interaction_type IN ('chat','voice','video')),
+  interaction_type interaction_type NOT NULL,
   started_at       timestamptz NOT NULL DEFAULT now(),
   ended_at         timestamptz,
   duration_seconds integer,
