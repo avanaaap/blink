@@ -1,6 +1,6 @@
 import { useState, useCallback } from "react";
 import { IDKit, orbLegacy } from "@worldcoin/idkit-core";
-import { getRpSignature, verifyProof } from "../api/worldid-api";
+import { getRpSignature, verifyAndAuthenticate } from "../api/worldid-api";
 
 const APP_ID = import.meta.env.VITE_WORLDID_APP_ID ?? "";
 const RP_ID = import.meta.env.VITE_WORLDID_RP_ID ?? "";
@@ -9,22 +9,26 @@ const ACTION = "verify-blink-user";
 type VerifyState = {
   status: "idle" | "signing" | "waiting" | "verifying" | "success" | "error";
   error: string | null;
+  isNewUser: boolean | null;
+  userId: string | null;
 };
 
-export function useWorldIdVerify(userId: string) {
+export function useWorldIdVerify() {
   const [state, setState] = useState<VerifyState>({
     status: "idle",
     error: null,
+    isNewUser: null,
+    userId: null,
   });
 
   const verify = useCallback(async () => {
     try {
-      setState({ status: "signing", error: null });
+      setState({ status: "signing", error: null, isNewUser: null, userId: null });
 
       // 1. Get RP signature from our backend
       const rpSig = await getRpSignature(ACTION);
 
-      setState({ status: "waiting", error: null });
+      setState((prev) => ({ ...prev, status: "waiting" }));
 
       // 2. Open IDKit and wait for user to complete verification
       const request = await IDKit.request({
@@ -40,22 +44,30 @@ export function useWorldIdVerify(userId: string) {
         allow_legacy_proofs: true,
         environment: "production",
         return_to: "blink://verify-done",
-      }).preset(orbLegacy({ signal: userId }));
+      }).preset(orbLegacy());
 
       const idkitResponse = await request.pollUntilCompletion();
 
-      setState({ status: "verifying", error: null });
+      setState((prev) => ({ ...prev, status: "verifying" }));
 
-      // 3. Send proof to our backend for verification + nullifier storage
-      await verifyProof(idkitResponse);
+      // 3. Send proof to our backend — it verifies, creates/finds user, returns JWT
+      const authResult = await verifyAndAuthenticate(idkitResponse);
 
-      setState({ status: "success", error: null });
+      setState({
+        status: "success",
+        error: null,
+        isNewUser: authResult.is_new_user,
+        userId: authResult.user_id,
+      });
+
+      return authResult;
     } catch (err) {
       const message =
         err instanceof Error ? err.message : "Verification failed";
-      setState({ status: "error", error: message });
+      setState({ status: "error", error: message, isNewUser: null, userId: null });
+      return null;
     }
-  }, [userId]);
+  }, []);
 
   return { ...state, verify };
 }

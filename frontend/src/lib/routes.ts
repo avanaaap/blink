@@ -1,8 +1,5 @@
 export const APP_ROUTES = {
   landing: "/",
-  auth: "/auth",
-  login: "/login",
-  signup: "/signup",
   preferences: "/preferences",
   profile: "/profile",
   match: "/match",

@@ -16,7 +16,7 @@ CREATE TYPE interaction_type     AS ENUM ('chat', 'voice', 'video');
 
 -- 1. profiles
 CREATE TABLE IF NOT EXISTS profiles (
-  id                   uuid PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+  id                   uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   name                 text NOT NULL,
   age                  integer NOT NULL CHECK (age >= 18),
   sexuality            sexuality_option,

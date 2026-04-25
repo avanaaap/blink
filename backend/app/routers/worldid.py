@@ -1,15 +1,17 @@
 """
-World ID verification routes.
+World ID authentication routes.
 
 1. POST /api/worldid/rp-signature  — generate a signed RP request for IDKit
-2. POST /api/worldid/verify-proof  — verify the proof with World ID and store the nullifier
+2. POST /api/worldid/verify        — verify proof, create/find user, return JWT
 """
 
+import uuid
+
 import httpx
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
-from app.core.auth import get_current_user
+from app.core.auth import create_access_token
 from app.core.config import settings
 from app.core.supabase import get_supabase
 from app.services.worldid import sign_rp_request
@@ -30,8 +32,14 @@ class RpSignatureResponse(BaseModel):
     expires_at: int
 
 
-class VerifyProofRequest(BaseModel):
+class VerifyRequest(BaseModel):
     idkit_response: dict
+
+
+class AuthResponse(BaseModel):
+    user_id: str
+    access_token: str
+    is_new_user: bool
 
 
 # ---- routes ----
@@ -48,17 +56,15 @@ async def rp_signature(payload: RpSignatureRequest):
     return result
 
 
-@router.post("/verify-proof")
-async def verify_proof(
-    payload: VerifyProofRequest,
-    user: dict = Depends(get_current_user),
-):
+@router.post("/verify", response_model=AuthResponse)
+async def verify_and_authenticate(payload: VerifyRequest):
+    """Verify World ID proof, upsert user, and return a JWT."""
     if not settings.worldid_rp_id:
         raise HTTPException(status_code=500, detail="World ID RP ID not configured")
 
     idkit_response = payload.idkit_response
 
-    # Call World ID verification API
+    # 1. Verify proof with World ID
     async with httpx.AsyncClient() as client:
         world_res = await client.post(
             f"https://developer.world.org/api/v4/verify/{settings.worldid_rp_id}",
@@ -69,36 +75,48 @@ async def verify_proof(
     if not world_res.is_success:
         raise HTTPException(status_code=400, detail="World ID verification failed")
 
-    # Extract nullifier from the first response
+    # 2. Extract nullifier
     responses = idkit_response.get("responses", [])
     if not responses:
         raise HTTPException(status_code=400, detail="No proof responses found")
 
     nullifier_raw = responses[0].get("nullifier", "")
-    nullifier_decimal = str(int(nullifier_raw, 16)) if nullifier_raw.startswith("0x") else nullifier_raw
+    nullifier_decimal = (
+        str(int(nullifier_raw, 16)) if nullifier_raw.startswith("0x") else nullifier_raw
+    )
 
     sb = get_supabase()
-    user_id = user["id"]
 
-    # Store nullifier — unique constraint prevents duplicate accounts
-    insert_result = (
+    # 3. Check if this nullifier already has an account
+    existing = (
         sb.table("nullifiers")
-        .insert({
-            "nullifier": nullifier_decimal,
-            "action": settings.worldid_action,
-            "user_id": user_id,
-        })
+        .select("user_id")
+        .eq("nullifier", nullifier_decimal)
+        .eq("action", settings.worldid_action)
         .execute()
     )
 
-    # Check for unique violation (duplicate account)
-    if hasattr(insert_result, "error") and insert_result.error:
-        error_code = getattr(insert_result.error, "code", "")
-        if error_code == "23505":
-            raise HTTPException(status_code=409, detail="DUPLICATE_ACCOUNT")
-        raise HTTPException(status_code=500, detail="Failed to store nullifier")
+    if existing.data:
+        # Returning user — issue JWT
+        user_id = existing.data[0]["user_id"]
+        token = create_access_token(user_id)
+        return AuthResponse(user_id=user_id, access_token=token, is_new_user=False)
 
-    # Mark profile as verified
-    sb.table("profiles").update({"worldid_verified": True}).eq("id", user_id).execute()
+    # 4. New user — create profile + nullifier
+    user_id = str(uuid.uuid4())
 
-    return {"success": True}
+    sb.table("profiles").insert({
+        "id": user_id,
+        "name": "",
+        "age": 18,
+        "worldid_verified": True,
+    }).execute()
+
+    sb.table("nullifiers").insert({
+        "nullifier": nullifier_decimal,
+        "action": settings.worldid_action,
+        "user_id": user_id,
+    }).execute()
+
+    token = create_access_token(user_id)
+    return AuthResponse(user_id=user_id, access_token=token, is_new_user=True)
