@@ -1,20 +1,7 @@
-from pydantic import BaseModel, EmailStr, Field
-
-
-class LoginRequest(BaseModel):
-    email: EmailStr
-    password: str
-
-
-class SignupRequest(BaseModel):
-    name: str
-    email: EmailStr
-    password: str
-    age: int = Field(ge=18)
+from pydantic import BaseModel
 
 
 class AuthResponse(BaseModel):
-    id: str
-    name: str
-    email: str
+    user_id: str
     access_token: str
+    is_new_user: bool

@@ -6,14 +6,12 @@ export type ApiResult<T> = {
 export type User = {
   id: string;
   name: string;
-  email: string;
 };
 
 export type AuthUser = {
-  id: string;
-  name: string;
-  email: string;
+  user_id: string;
   access_token: string;
+  is_new_user: boolean;
 };
 
 export type Message = {

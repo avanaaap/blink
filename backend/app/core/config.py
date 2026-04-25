@@ -16,5 +16,10 @@ class Settings(BaseSettings):
     worldid_rp_signing_key: str = ""
     worldid_action: str = "verify-blink-user"
 
+    # JWT (for issuing our own tokens after World ID verification)
+    jwt_secret: str = "change-me-in-production"
+    jwt_algorithm: str = "HS256"
+    jwt_expire_hours: int = 720  # 30 days
+
 
 settings = Settings()
