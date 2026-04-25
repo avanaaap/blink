@@ -3,10 +3,11 @@ import { useNavigate } from 'react-router-dom';
 import { APP_ROUTES } from '../../lib/routes';
 import { Button } from '../../components/Button';
 import { useWorldIdVerify } from '../../lib/hooks/useWorldIdVerify';
+import { QRCodeSVG } from 'qrcode.react';
 
 export function WelcomeScreen() {
   const navigate = useNavigate();
-  const { status, error, verify } = useWorldIdVerify();
+  const { status, error, connectUrl, verify } = useWorldIdVerify();
 
   const handleVerify = async () => {
     const result = await verify();
@@ -19,16 +20,7 @@ export function WelcomeScreen() {
     }
   };
 
-  const isLoading = status === "signing" || status === "waiting" || status === "verifying";
-
-  const buttonLabel = {
-    idle: "Verify with World ID",
-    signing: "Preparing...",
-    waiting: "Waiting for World App...",
-    verifying: "Verifying...",
-    success: "Redirecting...",
-    error: "Try Again",
-  }[status];
+  const isLoading = status === "signing" || status === "verifying";
 
   return (
     <div className="min-h-screen bg-white flex flex-col items-center justify-center px-6">
@@ -42,17 +34,44 @@ export function WelcomeScreen() {
           Authentic connections through meaningful conversations
         </p>
 
-        <div className="mt-8 flex w-full flex-col gap-4">
-          <Button
-            onClick={handleVerify}
-            fullWidth
-            disabled={isLoading}
-          >
-            {buttonLabel}
-          </Button>
+        <div className="mt-8 flex w-full flex-col items-center gap-4">
+          {connectUrl ? (
+            <div className="flex flex-col items-center gap-4">
+              <p className="text-neutral-700 font-medium">
+                Scan with World App
+              </p>
+              <div className="bg-white p-4 rounded-2xl shadow-lg border border-neutral-200">
+                <QRCodeSVG
+                  value={connectUrl}
+                  size={240}
+                  level="M"
+                  includeMargin
+                />
+              </div>
+              <p className="text-sm text-neutral-500 animate-pulse">
+                Waiting for verification...
+              </p>
+            </div>
+          ) : (
+            <>
+              <Button
+                onClick={handleVerify}
+                fullWidth
+                disabled={isLoading}
+              >
+                {isLoading
+                  ? status === "signing"
+                    ? "Preparing..."
+                    : "Verifying..."
+                  : status === "error"
+                    ? "Try Again"
+                    : "Verify with World ID"}
+              </Button>
 
-          {error && (
-            <p className="text-red-500 text-sm text-center">{error}</p>
+              {error && (
+                <p className="text-red-500 text-sm text-center">{error}</p>
+              )}
+            </>
           )}
 
           <p className="text-xs text-neutral-400 text-center mt-2">
