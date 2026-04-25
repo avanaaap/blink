@@ -3,34 +3,163 @@ import { useNavigate } from "react-router-dom";
 
 const GENDER_OPTIONS = ["Women", "Men", "Everyone"];
 
+const RELATIONSHIP_TYPE_OPTIONS = [
+  "Long-term relationship",
+  "Something casual",
+  "Still figuring it out",
+  "Prefer not to say",
+];
+
 const INTEREST_OPTIONS = [
   "Music", "Travel", "Cooking", "Fitness", "Reading",
   "Art", "Gaming", "Photography", "Movies", "Nature",
   "Technology", "Yoga", "Dancing", "Coffee", "Pets",
+  "Sports", "Fashion", "Volunteering", "Writing", "Hiking",
 ];
 
-const CONVERSATION_STYLES = [
-  { label: "Deep & Thoughtful", desc: "Meaningful topics and philosophical discussions" },
-  { label: "Fun & Playful", desc: "Light-hearted banter and humor" },
-  { label: "Adventurous", desc: "Spontaneous ideas and exciting plans" },
-  { label: "Chill & Casual", desc: "Relaxed, go-with-the-flow conversations" },
+const RELATIONSHIP_MEANING_OPTIONS = [
+  "A deep emotional bond built on trust and communication",
+  "A partnership where we grow and support each other",
+  "A fun adventure with someone who gets me",
+  "Companionship and shared experiences",
+];
+
+const SPENDING_TIME_OPTIONS = [
+  "Quality time together — walks, dinners, deep talks",
+  "Active adventures — hiking, travel, trying new things",
+  "Cozy nights in — movies, cooking, board games",
+  "A healthy mix of together time and personal space",
+];
+
+const DISAGREEMENT_OPTIONS = [
+  "Talk it out calmly and try to understand their perspective",
+  "Take some space first, then come back to discuss it",
+  "Find a compromise as quickly as possible",
+  "Use humor to lighten the mood before addressing it",
+];
+
+const STRANDED_ISLAND_OPTIONS = [
+  "Build a shelter and figure out survival",
+  "Explore the island and look for resources",
+  "Start a signal fire to get rescued",
+  "Sit by the shore and enjoy the peace for a bit",
+];
+
+const INSTRUMENT_OPTIONS = [
+  "Piano — classic, versatile, and emotionally expressive",
+  "Guitar — warm, inviting, and great for campfires",
+  "Drums — energetic, bold, and sets the rhythm",
+  "Violin — passionate, romantic, and deeply moving",
+  "Saxophone — smooth, jazzy, and a little mysterious",
+  "Ukulele — cheerful, lighthearted, and fun",
+];
+
+interface StepConfig {
+  title: string;
+  subtitle: string;
+  type: "single" | "multi" | "range";
+  options?: string[];
+  stateKey: string;
+  minSelect?: number;
+}
+
+const STEPS: StepConfig[] = [
+  {
+    title: "I'm interested in",
+    subtitle: "Who would you like to connect with?",
+    type: "single",
+    options: GENDER_OPTIONS,
+    stateKey: "gender",
+  },
+  {
+    title: "What are you looking for?",
+    subtitle: "What type of relationship interests you?",
+    type: "single",
+    options: RELATIONSHIP_TYPE_OPTIONS,
+    stateKey: "relationshipType",
+  },
+  {
+    title: "Age Range",
+    subtitle: "What age range are you looking for?",
+    type: "range",
+    stateKey: "ageRange",
+  },
+  {
+    title: "Your Interests",
+    subtitle: "Select at least 3 interests",
+    type: "multi",
+    options: INTEREST_OPTIONS,
+    stateKey: "interests",
+    minSelect: 3,
+  },
+  {
+    title: "What does a relationship mean to you?",
+    subtitle: "Pick the one that resonates most",
+    type: "single",
+    options: RELATIONSHIP_MEANING_OPTIONS,
+    stateKey: "relationshipMeaning",
+  },
+  {
+    title: "How do you approach spending time with your partner?",
+    subtitle: "What's your ideal way to connect?",
+    type: "single",
+    options: SPENDING_TIME_OPTIONS,
+    stateKey: "spendingTime",
+  },
+  {
+    title: "During a disagreement with your partner, you're more likely to:",
+    subtitle: "Be honest — there's no wrong answer!",
+    type: "single",
+    options: DISAGREEMENT_OPTIONS,
+    stateKey: "disagreement",
+  },
+  {
+    title: "You're on a stranded island — what's the first thing you do?",
+    subtitle: "This says more about you than you think",
+    type: "single",
+    options: STRANDED_ISLAND_OPTIONS,
+    stateKey: "strandedIsland",
+  },
+  {
+    title: "What musical instrument would you be?",
+    subtitle: "Pick the one that matches your vibe",
+    type: "single",
+    options: INSTRUMENT_OPTIONS,
+    stateKey: "instrument",
+  },
 ];
 
 export default function PreferencesScreen() {
   const navigate = useNavigate();
   const [step, setStep] = useState(0);
-  const [gender, setGender] = useState("");
-  const [ageRange, setAgeRange] = useState({ min: 18, max: 30 });
-  const [interests, setInterests] = useState<string[]>([]);
-  const [conversationStyle, setConversationStyle] = useState("");
+  const [answers, setAnswers] = useState<Record<string, string | string[] | { min: number; max: number }>>({
+    gender: "",
+    relationshipType: "",
+    ageRange: { min: 18, max: 30 },
+    interests: [],
+    relationshipMeaning: "",
+    spendingTime: "",
+    disagreement: "",
+    strandedIsland: "",
+    instrument: "",
+  });
 
-  const totalSteps = 4;
+  const totalSteps = STEPS.length;
   const progress = ((step + 1) / totalSteps) * 100;
+  const currentStep = STEPS[step];
 
-  const toggleInterest = (interest: string) => {
-    setInterests((prev) =>
-      prev.includes(interest) ? prev.filter((i) => i !== interest) : [...prev, interest]
-    );
+  const getAnswer = (key: string) => answers[key];
+  const setAnswer = (key: string, value: string | string[] | { min: number; max: number }) => {
+    setAnswers((prev) => ({ ...prev, [key]: value }));
+  };
+
+  const toggleMulti = (key: string, value: string) => {
+    const current = (getAnswer(key) as string[]) || [];
+    if (current.includes(value)) {
+      setAnswer(key, current.filter((v) => v !== value));
+    } else {
+      setAnswer(key, [...current, value]);
+    }
   };
 
   const handleNext = () => {
@@ -42,13 +171,13 @@ export default function PreferencesScreen() {
   };
 
   const canProceed = () => {
-    switch (step) {
-      case 0: return gender !== "";
-      case 1: return true;
-      case 2: return interests.length >= 3;
-      case 3: return conversationStyle !== "";
-      default: return false;
+    const answer = getAnswer(currentStep.stateKey);
+    if (currentStep.type === "single") return answer !== "";
+    if (currentStep.type === "multi") {
+      return (answer as string[]).length >= (currentStep.minSelect || 1);
     }
+    if (currentStep.type === "range") return true;
+    return false;
   };
 
   return (
@@ -57,133 +186,103 @@ export default function PreferencesScreen() {
         ← Back
       </button>
 
-      <div className="progress-bar-container" style={{ marginBottom: 32 }}>
-        <div className="progress-bar-fill" style={{ width: `${progress}%` }} />
+      <div style={{ display: "flex", alignItems: "center", gap: 8, width: "100%", marginBottom: 24 }}>
+        <div className="progress-bar-container">
+          <div className="progress-bar-fill" style={{ width: `${progress}%` }} />
+        </div>
+        <span style={{ fontSize: 12, color: "var(--color-text-muted)", whiteSpace: "nowrap" }}>
+          {step + 1}/{totalSteps}
+        </span>
       </div>
 
-      {step === 0 && (
+      <h2 style={{ fontSize: 22, fontWeight: 700, marginBottom: 8, textAlign: "center" }}>
+        {currentStep.title}
+      </h2>
+      <p style={{ color: "var(--color-text-secondary)", marginBottom: 24, textAlign: "center", fontSize: 15 }}>
+        {currentStep.subtitle}
+      </p>
+
+      {/* Single select */}
+      {currentStep.type === "single" && currentStep.options && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 10, width: "100%" }}>
+          {currentStep.options.map((option) => (
+            <button
+              key={option}
+              className={`chip ${getAnswer(currentStep.stateKey) === option ? "selected" : ""}`}
+              onClick={() => setAnswer(currentStep.stateKey, option)}
+              style={{
+                justifyContent: "flex-start",
+                padding: "14px 20px",
+                fontSize: 15,
+                textAlign: "left",
+                lineHeight: 1.4,
+              }}
+            >
+              {option}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* Multi select */}
+      {currentStep.type === "multi" && currentStep.options && (
         <>
-          <h2 style={{ fontSize: 24, fontWeight: 700, marginBottom: 8 }}>
-            I&apos;m interested in
-          </h2>
-          <p style={{ color: "var(--color-text-secondary)", marginBottom: 24, textAlign: "center" }}>
-            Who would you like to connect with?
-          </p>
-          <div style={{ display: "flex", flexDirection: "column", gap: 12, width: "100%" }}>
-            {GENDER_OPTIONS.map((option) => (
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
+            {currentStep.options.map((option) => (
               <button
                 key={option}
-                className={`chip ${gender === option ? "selected" : ""}`}
-                onClick={() => setGender(option)}
-                style={{ justifyContent: "center", padding: "14px 24px", fontSize: 16 }}
+                className={`chip ${(getAnswer(currentStep.stateKey) as string[]).includes(option) ? "selected" : ""}`}
+                onClick={() => toggleMulti(currentStep.stateKey, option)}
               >
                 {option}
               </button>
             ))}
           </div>
-        </>
-      )}
-
-      {step === 1 && (
-        <>
-          <h2 style={{ fontSize: 24, fontWeight: 700, marginBottom: 8 }}>Age Range</h2>
-          <p style={{ color: "var(--color-text-secondary)", marginBottom: 24, textAlign: "center" }}>
-            What age range are you looking for?
-          </p>
-          <div style={{ display: "flex", gap: 16, width: "100%", alignItems: "center" }}>
-            <div className="input-group" style={{ flex: 1 }}>
-              <label htmlFor="min-age">Min</label>
-              <input
-                id="min-age"
-                type="number"
-                className="input-field"
-                min="18"
-                max="99"
-                value={ageRange.min}
-                onChange={(e) => setAgeRange({ ...ageRange, min: Number(e.target.value) })}
-              />
-            </div>
-            <span style={{ color: "var(--color-text-muted)", marginTop: 20 }}>—</span>
-            <div className="input-group" style={{ flex: 1 }}>
-              <label htmlFor="max-age">Max</label>
-              <input
-                id="max-age"
-                type="number"
-                className="input-field"
-                min="18"
-                max="99"
-                value={ageRange.max}
-                onChange={(e) => setAgeRange({ ...ageRange, max: Number(e.target.value) })}
-              />
-            </div>
-          </div>
-        </>
-      )}
-
-      {step === 2 && (
-        <>
-          <h2 style={{ fontSize: 24, fontWeight: 700, marginBottom: 8 }}>Your Interests</h2>
-          <p style={{ color: "var(--color-text-secondary)", marginBottom: 24, textAlign: "center" }}>
-            Select at least 3 interests
-          </p>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
-            {INTEREST_OPTIONS.map((interest) => (
-              <button
-                key={interest}
-                className={`chip ${interests.includes(interest) ? "selected" : ""}`}
-                onClick={() => toggleInterest(interest)}
-              >
-                {interest}
-              </button>
-            ))}
-          </div>
-          <p
-            style={{
-              color: "var(--color-text-muted)",
-              fontSize: 13,
-              marginTop: 12,
-            }}
-          >
-            {interests.length} of 3 minimum selected
+          <p style={{ color: "var(--color-text-muted)", fontSize: 13, marginTop: 12 }}>
+            {(getAnswer(currentStep.stateKey) as string[]).length} of {currentStep.minSelect} minimum selected
           </p>
         </>
       )}
 
-      {step === 3 && (
-        <>
-          <h2 style={{ fontSize: 24, fontWeight: 700, marginBottom: 8 }}>
-            Conversation Style
-          </h2>
-          <p style={{ color: "var(--color-text-secondary)", marginBottom: 24, textAlign: "center" }}>
-            How do you like to connect?
-          </p>
-          <div style={{ display: "flex", flexDirection: "column", gap: 12, width: "100%" }}>
-            {CONVERSATION_STYLES.map((style) => (
-              <button
-                key={style.label}
-                className={`card ${conversationStyle === style.label ? "" : ""}`}
-                onClick={() => setConversationStyle(style.label)}
-                style={{
-                  cursor: "pointer",
-                  textAlign: "left",
-                  border:
-                    conversationStyle === style.label
-                      ? "2px solid var(--color-primary)"
-                      : "1.5px solid var(--color-border-light)",
-                  background:
-                    conversationStyle === style.label
-                      ? "var(--color-bg-secondary)"
-                      : "var(--color-bg)",
-                }}
-              >
-                <div style={{ fontWeight: 600, marginBottom: 4 }}>{style.label}</div>
-                <div style={{ fontSize: 13, color: "var(--color-text-secondary)" }}>
-                  {style.desc}
-                </div>
-              </button>
-            ))}
+      {/* Range select */}
+      {currentStep.type === "range" && (
+        <div style={{ display: "flex", gap: 16, width: "100%", alignItems: "center" }}>
+          <div className="input-group" style={{ flex: 1 }}>
+            <label htmlFor="min-age">Min</label>
+            <input
+              id="min-age"
+              type="number"
+              className="input-field"
+              min="18"
+              max="99"
+              value={(getAnswer("ageRange") as { min: number; max: number }).min}
+              onChange={(e) =>
+                setAnswer("ageRange", {
+                  ...(getAnswer("ageRange") as { min: number; max: number }),
+                  min: Number(e.target.value),
+                })
+              }
+            />
           </div>
-        </>
+          <span style={{ color: "var(--color-text-muted)", marginTop: 20 }}>—</span>
+          <div className="input-group" style={{ flex: 1 }}>
+            <label htmlFor="max-age">Max</label>
+            <input
+              id="max-age"
+              type="number"
+              className="input-field"
+              min="18"
+              max="99"
+              value={(getAnswer("ageRange") as { min: number; max: number }).max}
+              onChange={(e) =>
+                setAnswer("ageRange", {
+                  ...(getAnswer("ageRange") as { min: number; max: number }),
+                  max: Number(e.target.value),
+                })
+              }
+            />
+          </div>
+        </div>
       )}
 
       <button

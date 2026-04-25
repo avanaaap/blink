@@ -1,5 +1,5 @@
-import { useState, useEffect, useRef } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useEffect, useRef, useCallback } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 
 interface Message {
   id: number;
@@ -12,6 +12,17 @@ const CONVERSATION_STARTERS = [
   "What's something you're passionate about that most people don't know?",
   "If you could live anywhere for a year, where would it be?",
   "What's the best conversation you've had recently?",
+  "What's your idea of a perfect weekend?",
+  "What's on your bucket list this year?",
+];
+
+const MATCH_REPLIES = [
+  "That's really cool! I can totally relate to that.",
+  "Oh I love that! We definitely have that in common.",
+  "That's so interesting — tell me more!",
+  "Haha, I wasn't expecting that but I love it.",
+  "Same here honestly. It's nice to connect with someone who gets it.",
+  "That's a great answer. I think we'd get along really well.",
 ];
 
 const INITIAL_MESSAGES: Message[] = [
@@ -31,11 +42,13 @@ const INITIAL_MESSAGES: Message[] = [
 
 export default function ChatScreen() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const stage = searchParams.get("stage") || "chat";
   const [messages, setMessages] = useState<Message[]>(INITIAL_MESSAGES);
   const [input, setInput] = useState("");
   const [timeLeft, setTimeLeft] = useState(86400);
-  const [showStarters, setShowStarters] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -51,36 +64,47 @@ export default function ChatScreen() {
   const formatTime = (seconds: number) => {
     const h = Math.floor(seconds / 3600);
     const m = Math.floor((seconds % 3600) / 60);
-    return `${h}h ${m}m`;
+    const s = seconds % 60;
+    return `${h.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
   };
 
-  const sendMessage = (text: string) => {
+  const nextId = useRef(100);
+
+  const sendMessage = useCallback((text: string) => {
     if (!text.trim()) return;
+    const id = nextId.current++;
+    const now = new Date();
     const newMsg: Message = {
-      id: messages.length,
+      id,
       text: text.trim(),
       sender: "user",
-      timestamp: new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }),
+      timestamp: now.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }),
     };
     setMessages((prev) => [...prev, newMsg]);
     setInput("");
-    setShowStarters(false);
+    inputRef.current?.focus();
 
+    const delay = 1500;
+    const replyIndex = id % MATCH_REPLIES.length;
     setTimeout(() => {
+      const replyTime = new Date();
       const reply: Message = {
-        id: messages.length + 1,
-        text: "That's so cool! I totally relate. I've been really into discovering new things lately too.",
+        id: nextId.current++,
+        text: MATCH_REPLIES[replyIndex],
         sender: "match",
-        timestamp: new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }),
+        timestamp: replyTime.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }),
       };
       setMessages((prev) => [...prev, reply]);
-    }, 1500);
-  };
+    }, delay);
+  }, []);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     sendMessage(input);
   };
+
+  const stageLabel = stage === "voice" ? "Voice Call Chat" : stage === "video" ? "Video Call Chat" : "Chat";
+  const ratingPath = `/rating?stage=${stage}`;
 
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "100vh", maxWidth: 480, margin: "0 auto" }}>
@@ -90,26 +114,52 @@ export default function ChatScreen() {
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
-          padding: "16px 20px",
+          padding: "12px 20px",
           borderBottom: "1px solid var(--color-border-light)",
+          background: "var(--color-bg)",
         }}
       >
         <button className="back-btn" style={{ marginBottom: 0 }} onClick={() => navigate("/dashboard")}>
           ←
         </button>
-        <div style={{ textAlign: "center" }}>
+        <div style={{ textAlign: "center", flex: 1 }}>
           <div style={{ fontWeight: 600, fontSize: 16 }}>Mystery Match</div>
-          <div style={{ fontSize: 12, color: "var(--color-accent)" }}>
-            ⏱ {formatTime(timeLeft)} remaining
-          </div>
+          <div style={{ fontSize: 11, color: "var(--color-text-muted)" }}>{stageLabel}</div>
         </div>
         <button
           className="btn-ghost"
           style={{ fontSize: 12, color: "var(--color-error)" }}
-          onClick={() => navigate("/rating")}
+          onClick={() => navigate(ratingPath)}
         >
-          End Chat
+          End
         </button>
+      </div>
+
+      {/* Timer bar */}
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: 8,
+          padding: "10px 20px",
+          background: "var(--color-bg-secondary)",
+          borderBottom: "1px solid var(--color-border-light)",
+        }}
+      >
+        <span style={{ fontSize: 18 }}>⏱</span>
+        <span
+          style={{
+            fontFamily: "monospace",
+            fontSize: 20,
+            fontWeight: 700,
+            color: timeLeft < 3600 ? "var(--color-error)" : "var(--color-primary)",
+            letterSpacing: 2,
+          }}
+        >
+          {formatTime(timeLeft)}
+        </span>
+        <span style={{ fontSize: 12, color: "var(--color-text-muted)" }}>remaining</span>
       </div>
 
       {/* Messages */}
@@ -182,16 +232,17 @@ export default function ChatScreen() {
       </div>
 
       {/* Conversation starters */}
-      {showStarters && (
-        <div
-          style={{
-            padding: "8px 20px",
-            display: "flex",
-            gap: 8,
-            overflowX: "auto",
-            borderTop: "1px solid var(--color-border-light)",
-          }}
-        >
+      <div
+        style={{
+          padding: "8px 20px",
+          borderTop: "1px solid var(--color-border-light)",
+          background: "var(--color-bg-secondary)",
+        }}
+      >
+        <p style={{ fontSize: 11, color: "var(--color-text-muted)", marginBottom: 6 }}>
+          Conversation starters:
+        </p>
+        <div style={{ display: "flex", gap: 8, overflowX: "auto", paddingBottom: 4 }}>
           {CONVERSATION_STARTERS.map((starter, i) => (
             <button
               key={i}
@@ -199,34 +250,44 @@ export default function ChatScreen() {
               style={{ whiteSpace: "nowrap", flexShrink: 0, fontSize: 12 }}
               onClick={() => sendMessage(starter)}
             >
-              {starter.slice(0, 40)}…
+              {starter.length > 35 ? starter.slice(0, 35) + "…" : starter}
             </button>
           ))}
         </div>
-      )}
+      </div>
 
       {/* Input */}
       <form
         onSubmit={handleSubmit}
         style={{
           display: "flex",
-          gap: 8,
-          padding: "12px 20px",
+          gap: 10,
+          padding: "14px 20px",
           borderTop: "1px solid var(--color-border-light)",
+          background: "var(--color-bg)",
         }}
       >
         <input
+          ref={inputRef}
           type="text"
           className="input-field"
-          placeholder="Type a message..."
+          placeholder="Type your message..."
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          style={{ flex: 1 }}
+          style={{ flex: 1, fontSize: 16 }}
+          autoFocus
         />
         <button
           type="submit"
           className="btn btn-primary"
-          style={{ width: "auto", padding: "12px 20px" }}
+          style={{
+            width: 48,
+            height: 48,
+            padding: 0,
+            borderRadius: "50%",
+            fontSize: 20,
+            flexShrink: 0,
+          }}
           disabled={!input.trim()}
         >
           ↑
