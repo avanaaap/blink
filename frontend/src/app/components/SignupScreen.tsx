@@ -17,7 +17,7 @@ export function SignupScreen() {
 
   const handleSignup = (e: React.FormEvent) => {
     e.preventDefault();
-    navigate(APP_ROUTES.preferences);
+    navigate(`${APP_ROUTES.preferences}?mode=create`);
   };
 
   return (

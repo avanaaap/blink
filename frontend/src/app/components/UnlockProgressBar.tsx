@@ -47,9 +47,9 @@ export function UnlockProgressBar({ unlockLevel }: UnlockProgressBarProps) {
         })}
       </div>
       <p className="text-xs text-neutral-500 mt-4 text-center">
-        {unlockLevel === 0 && 'Complete this chat with a good rating to unlock voice calls'}
-        {unlockLevel === 1 && 'One more great conversation to unlock video calls'}
-        {unlockLevel === 2 && 'Complete the video call to reveal your match'}
+        {unlockLevel === 0 && 'Keep chatting to unlock voice calls'}
+        {unlockLevel === 1 && 'Build mutual interest to unlock video calls'}
+        {unlockLevel === 2 && 'Complete a meaningful video call to reveal your match'}
         {unlockLevel === 3 && 'Profile unlocked! You can now connect'}
       </p>
     </div>

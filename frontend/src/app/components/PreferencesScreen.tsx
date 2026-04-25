@@ -1,35 +1,16 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { BlinkLogo } from './BlinkLogo';
 import { ChevronRight, ChevronLeft } from 'lucide-react';
 import { APP_ROUTES } from '../../lib/routes';
+import { defaultUserProfilePreferences, loadUserProfilePreferences, saveUserProfilePreferences } from '../../lib/profile-storage';
 
 export function PreferencesScreen() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const isEditMode = searchParams.get('mode') === 'edit';
   const [step, setStep] = useState(1);
-  const [preferences, setPreferences] = useState({
-    // Basic preferences
-    interestedIn: [] as string[],
-    relationshipType: '',
-    ageRange: [22, 35],
-    interests: [] as string[],
-
-    // Deep questions
-    relationshipMeaning: [] as string[],
-    timeWithPartner: [] as string[],
-    conflictStyle: '',
-    islandScenario: '',
-    musicalInstrument: '',
-
-    // Lifestyle
-    sexuality: '',
-    spendingHabits: '',
-    hasDebt: '',
-    wantsKids: '',
-
-    // Photos
-    photos: [] as { url: string; caption: string }[],
-  });
+  const [preferences, setPreferences] = useState(() => (isEditMode ? loadUserProfilePreferences() : defaultUserProfilePreferences));
 
   const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -60,6 +41,7 @@ export function PreferencesScreen() {
   };
 
   const handleSaveAndExit = () => {
+    saveUserProfilePreferences(preferences);
     navigate(APP_ROUTES.match);
   };
 
@@ -98,7 +80,8 @@ export function PreferencesScreen() {
   };
 
   const handleComplete = () => {
-    navigate(APP_ROUTES.match);
+    saveUserProfilePreferences(preferences);
+    navigate(`${APP_ROUTES.myProfile}?fromSetup=true`);
   };
 
   return (
@@ -115,7 +98,7 @@ export function PreferencesScreen() {
 
         <div className="flex flex-col items-center gap-4 mb-8">
           <BlinkLogo size={60} className="text-black" />
-          <h1 className="text-3xl">Build Your Profile</h1>
+          <h1 className="text-3xl">{isEditMode ? 'Edit Your Profile' : 'Build Your Profile'}</h1>
           <div className="flex gap-2">
             {[1, 2, 3, 4, 5, 6].map(s => (
               <div
