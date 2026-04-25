@@ -12,7 +12,9 @@ class Settings(BaseSettings):
 
     # World ID
     worldid_app_id: str = ""
-    worldid_action: str = "verify-human"
+    worldid_rp_id: str = ""
+    worldid_rp_signing_key: str = ""
+    worldid_action: str = "verify-blink-user"
 
 
 settings = Settings()
