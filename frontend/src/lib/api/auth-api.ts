@@ -1,5 +1,5 @@
-import type { User } from "../types";
-import { apiRequest } from "./client";
+import type { AuthUser, User } from "../types";
+import { apiRequest, setAccessToken } from "./client";
 
 type LoginPayload = {
   email: string;
@@ -14,15 +14,19 @@ type SignupPayload = {
 };
 
 export async function login(payload: LoginPayload): Promise<User> {
-  return apiRequest<User>("/auth/login", {
+  const result = await apiRequest<AuthUser>("/api/auth/login", {
     method: "POST",
     body: JSON.stringify(payload),
   });
+  setAccessToken(result.access_token);
+  return { id: result.id, name: result.name, email: result.email };
 }
 
 export async function signup(payload: SignupPayload): Promise<User> {
-  return apiRequest<User>("/auth/signup", {
+  const result = await apiRequest<AuthUser>("/api/auth/signup", {
     method: "POST",
     body: JSON.stringify(payload),
   });
+  setAccessToken(result.access_token);
+  return { id: result.id, name: result.name, email: result.email };
 }
