@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.routers import health, worldid
+from app.routers import auth, health, matches, messages, profiles, ratings, worldid
 
 app = FastAPI(title="Blink API", version="0.1.0")
 
@@ -14,4 +14,9 @@ app.add_middleware(
 )
 
 app.include_router(health.router)
+app.include_router(auth.router)
+app.include_router(profiles.router)
+app.include_router(matches.router)
+app.include_router(messages.router)
+app.include_router(ratings.router)
 app.include_router(worldid.router)
