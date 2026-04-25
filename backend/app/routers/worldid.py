@@ -64,6 +64,10 @@ async def verify_and_authenticate(payload: VerifyRequest):
 
     idkit_response = payload.idkit_response
 
+    # Ensure action is included — required by World ID for uniqueness proofs
+    if "action" not in idkit_response:
+        idkit_response["action"] = settings.worldid_action
+
     # 1. Verify proof with World ID
     async with httpx.AsyncClient() as client:
         world_res = await client.post(
