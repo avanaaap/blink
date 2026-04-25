@@ -73,7 +73,14 @@ async def verify_and_authenticate(payload: VerifyRequest):
         )
 
     if not world_res.is_success:
-        raise HTTPException(status_code=400, detail="World ID verification failed")
+        try:
+            error_body = world_res.json()
+        except Exception:
+            error_body = world_res.text
+        raise HTTPException(
+            status_code=400,
+            detail={"message": "World ID verification failed", "world_id_error": error_body},
+        )
 
     # 2. Extract nullifier
     responses = idkit_response.get("responses", [])
