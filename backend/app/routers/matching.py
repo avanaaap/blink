@@ -1,9 +1,10 @@
-"""Router for the daily matching algorithm and rating feedback."""
+"""Router for the daily matching algorithm and stage decisions."""
 
 from fastapi import APIRouter, Depends, HTTPException
 
 from app.core.auth import get_current_user
-from app.services.matching import process_rating_feedback, run_daily_matching
+from app.models.stage_decision import StageDecisionCreate, StageDecisionResponse
+from app.services.matching import run_daily_matching, submit_stage_decision
 
 router = APIRouter(prefix="/api/matching", tags=["matching"])
 
@@ -24,22 +25,29 @@ async def trigger_daily_matching():
         raise HTTPException(status_code=500, detail=str(exc)) from exc
 
 
-@router.post("/feedback")
-async def submit_rating_feedback(
-    interaction_id: str,
-    rating: int,
+@router.post("/decide", response_model=StageDecisionResponse)
+async def decide_stage(
+    payload: StageDecisionCreate,
     user: dict = Depends(get_current_user),
 ):
-    """Process a rating and return weight-adjustment signals.
+    """Submit a stage decision for the current conversation phase.
 
-    Called after the regular ``POST /api/ratings`` endpoint so the
-    feedback loop can run asynchronously without blocking the rating
-    submission itself.
+    Each user picks one of: ``move_forward``, ``not_sure``, or
+    ``dont_move_forward``.  Once both users have decided:
+
+    - If either chose ``dont_move_forward`` the match status becomes
+      ``unmatched``.
+    - Otherwise the match's ``unlock_level`` advances by one
+      (text → call → video → revealed → connected).
     """
-    if not 1 <= rating <= 5:
-        raise HTTPException(status_code=400, detail="Rating must be 1-5")
-
-    adjustment = await process_rating_feedback(user["id"], rating, interaction_id)
-    if adjustment is None:
-        return {"status": "insufficient_data"}
-    return {"status": "ok", "adjustment": adjustment}
+    try:
+        result = await submit_stage_decision(
+            user_id=user["id"],
+            match_id=payload.match_id,
+            decision=payload.decision.value,
+        )
+        return result
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except PermissionError as exc:
+        raise HTTPException(status_code=403, detail=str(exc)) from exc

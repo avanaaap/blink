@@ -9,14 +9,15 @@ Nightly cron job that:
   4. Greedily assigns one match per user per day
   5. Writes results to the ``matches`` table
 
-Also exposes a rating-driven feedback loop that flags over/under-weighted
-scoring dimensions after each user rating.
+Also exposes stage-decision logic: after each conversation phase
+(text → call → video) both users choose *move forward*, *not sure*,
+or *don't move forward*.  If neither user says "don't move forward"
+the match advances to the next unlock level; otherwise it ends.
 """
 
 from __future__ import annotations
 
 import logging
-import math
 from datetime import datetime, timezone
 from typing import Any
 
@@ -69,8 +70,7 @@ RELATIONSHIP_INCOMPATIBLE: set[frozenset[str]] = {
     frozenset({"Monogamy", "Polyamory"}),
 }
 
-RATING_NEGATIVE_THRESHOLD = -0.5
-RATING_POSITIVE_THRESHOLD = 0.5
+STAGE_DECISION_BLOCK = "dont_move_forward"
 
 
 # ===================================================================== #
@@ -342,137 +342,105 @@ async def run_daily_matching() -> list[dict[str, Any]]:
 
 
 # ===================================================================== #
-#  Rating-Driven Feedback Loop                                          #
+#  Stage Decision Logic                                                 #
+# ===================================================================== #
+#  After each conversation phase (text → call → video) both users pick  #
+#  one of: move_forward | not_sure | dont_move_forward.                 #
+#                                                                       #
+#  • If EITHER user says "dont_move_forward" → match is unmatched.      #
+#  • Otherwise (both say move_forward or not_sure) → unlock_level++.    #
 # ===================================================================== #
 
-def _identify_overlapping_dimensions(
-    rater: dict[str, Any], partner: dict[str, Any]
-) -> list[str]:
-    """Return the scoring dimensions where both profiles overlap."""
-    dims: list[str] = []
-    if set(rater.get("interests") or []) & set(partner.get("interests") or []):
-        dims.append("interests")
-    if set(rater.get("relationship_meaning") or []) & set(
-        partner.get("relationship_meaning") or []
-    ):
-        dims.append("relationship_meaning")
-    if set(rater.get("time_with_partner") or []) & set(
-        partner.get("time_with_partner") or []
-    ):
-        dims.append("time_with_partner")
-    if rater.get("spending_habits") and rater["spending_habits"] == partner.get(
-        "spending_habits"
-    ):
-        dims.append("spending_habits")
-    if rater.get("wants_kids") and rater["wants_kids"] == partner.get("wants_kids"):
-        dims.append("wants_kids")
-    return dims
+MAX_UNLOCK_LEVEL = 4  # 0→chat, 1→voice, 2→video, 3→revealed, 4→connected
 
 
-_FEEDBACK_PROFILE_COLS = (
-    "interests, relationship_meaning, time_with_partner, spending_habits, wants_kids"
-)
+async def submit_stage_decision(
+    user_id: str, match_id: str, decision: str
+) -> dict[str, Any]:
+    """Record a user's stage decision and, when both are in,
+    resolve the match progression.
 
-
-async def process_rating_feedback(
-    rater_id: str, new_rating: int, interaction_id: str
-) -> dict[str, Any] | None:
-    """Analyse a new rating and compute weight-adjustment signals.
-
-    Returns an adjustment dict or ``None`` when there is insufficient
-    history to produce a meaningful z-score.
+    Returns a dict with ``status`` ("waiting", "advanced", or
+    "unmatched") and current ``unlock_level``.
     """
     sb = get_supabase()
 
-    all_ratings = (
-        sb.table("ratings")
-        .select("rating")
-        .eq("rater_id", rater_id)
-        .execute()
-    )
-    ratings = [r["rating"] for r in (all_ratings.data or [])]
-
-    if len(ratings) < 3:
-        return None
-
-    user_mean = sum(ratings) / len(ratings)
-    variance = sum((r - user_mean) ** 2 for r in ratings) / len(ratings)
-    user_std = math.sqrt(variance) if variance > 0 else 1.0
-    normalized = (new_rating - user_mean) / user_std
-
-    # Resolve interaction → match → partner
-    interaction = (
-        sb.table("interactions")
-        .select("match_id")
-        .eq("id", interaction_id)
-        .single()
-        .execute()
-    )
-    if not interaction.data:
-        return None
-
-    match_id = interaction.data["match_id"]
+    # Verify the user belongs to this match
     match_row = (
         sb.table("matches")
-        .select("user_a, user_b, compatibility_score")
+        .select("id, user_a, user_b, unlock_level, status")
         .eq("id", match_id)
         .single()
         .execute()
     )
     if not match_row.data:
-        return None
+        raise ValueError("Match not found")
 
     match = match_row.data
-    partner_id = match["user_b"] if match["user_a"] == rater_id else match["user_a"]
+    if user_id not in (match["user_a"], match["user_b"]):
+        raise PermissionError("User is not part of this match")
 
-    adjustment: dict[str, Any] = {
-        "rater_id": rater_id,
-        "partner_id": partner_id,
-        "match_id": match_id,
-        "raw_rating": new_rating,
-        "normalized_score": round(normalized, 3),
-        "compatibility_score": match["compatibility_score"],
-        "direction": "neutral",
-        "dimensions_flagged": [],
-    }
+    # Upsert this user's decision (one per user per match per level)
+    sb.table("stage_decisions").upsert(
+        {
+            "match_id": match_id,
+            "user_id": user_id,
+            "unlock_level": match["unlock_level"],
+            "decision": decision,
+        },
+        on_conflict="match_id,user_id,unlock_level",
+    ).execute()
 
-    rater_profile = (
-        sb.table("profiles")
-        .select(_FEEDBACK_PROFILE_COLS)
-        .eq("id", rater_id)
-        .single()
+    # Check if both users have decided for the current level
+    decisions = (
+        sb.table("stage_decisions")
+        .select("user_id, decision")
+        .eq("match_id", match_id)
+        .eq("unlock_level", match["unlock_level"])
         .execute()
     )
-    partner_profile = (
-        sb.table("profiles")
-        .select(_FEEDBACK_PROFILE_COLS)
-        .eq("id", partner_id)
-        .single()
-        .execute()
+    rows = decisions.data or []
+    if len(rows) < 2:
+        return {
+            "status": "waiting",
+            "unlock_level": match["unlock_level"],
+        }
+
+    # Both decisions are in — resolve
+    any_block = any(
+        r["decision"] == STAGE_DECISION_BLOCK for r in rows
     )
 
-    if not rater_profile.data or not partner_profile.data:
-        return adjustment
+    if any_block:
+        sb.table("matches").update(
+            {"status": "unmatched"}
+        ).eq("id", match_id).execute()
 
-    dims = _identify_overlapping_dimensions(rater_profile.data, partner_profile.data)
-
-    if normalized < RATING_NEGATIVE_THRESHOLD:
-        adjustment["direction"] = "overweighted"
-        adjustment["dimensions_flagged"] = dims
         logger.info(
-            "User %s rated poorly (z=%.2f) — flagging %s as overweighted",
-            rater_id,
-            normalized,
-            dims,
+            "Match %s unmatched at unlock_level %d",
+            match_id,
+            match["unlock_level"],
         )
-    elif normalized > RATING_POSITIVE_THRESHOLD:
-        adjustment["direction"] = "underweighted"
-        adjustment["dimensions_flagged"] = dims
-        logger.info(
-            "User %s rated highly (z=%.2f) — flagging %s as underweighted",
-            rater_id,
-            normalized,
-            dims,
-        )
+        return {
+            "status": "unmatched",
+            "unlock_level": match["unlock_level"],
+        }
 
-    return adjustment
+    # Both chose move_forward or not_sure → advance
+    new_level = min(
+        match["unlock_level"] + 1, MAX_UNLOCK_LEVEL
+    )
+    update_data: dict[str, Any] = {"unlock_level": new_level}
+    if new_level == MAX_UNLOCK_LEVEL:
+        update_data["status"] = "connected"
+
+    sb.table("matches").update(update_data).eq(
+        "id", match_id
+    ).execute()
+
+    logger.info(
+        "Match %s advanced to unlock_level %d",
+        match_id,
+        new_level,
+    )
+    return {"status": "advanced", "unlock_level": new_level}

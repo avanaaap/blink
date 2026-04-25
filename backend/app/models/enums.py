@@ -109,3 +109,9 @@ class InteractionType(str, Enum):
     VOICE = "voice"
     VIDEO = "video"
     POST_CONNECTION = "post_connection"
+
+
+class StageDecision(str, Enum):
+    MOVE_FORWARD = "move_forward"
+    NOT_SURE = "not_sure"
+    DONT_MOVE_FORWARD = "dont_move_forward"
