@@ -10,7 +10,7 @@ class MatchResponse(BaseModel):
     compatibility_score: int | None = None
     shared_interests: list[InterestOption] = []
     match_date: str
-    status: MatchStatus = MatchStatus.ACTIVE
+    status: MatchStatus = MatchStatus.PENDING
     unlock_level: int = 0
     created_at: str | None = None
 
@@ -23,9 +23,9 @@ class MatchDetail(BaseModel):
     partner_age: int | None = None
     compatibility_score: int | None = None
     shared_interests: list[InterestOption] = []
-    status: MatchStatus = MatchStatus.ACTIVE
+    status: MatchStatus = MatchStatus.PENDING
     unlock_level: int = 0
 
 
 class UnlockUpdate(BaseModel):
-    unlock_level: int = Field(ge=0, le=3)
+    unlock_level: int = Field(ge=0, le=4)
