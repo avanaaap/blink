@@ -1,0 +1,16 @@
+export const APP_ROUTES = {
+  landing: "/",
+  auth: "/auth",
+  login: "/login",
+  signup: "/signup",
+  preferences: "/preferences",
+  profile: "/profile",
+  match: "/match",
+  chat: "/chat",
+  voiceCall: "/voice-call",
+  videoCall: "/video-call",
+  rating: "/rating",
+  reveal: "/reveal",
+  connection: "/connection",
+  settings: "/settings",
+} as const;
