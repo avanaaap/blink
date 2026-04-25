@@ -54,12 +54,16 @@ export function useWorldIdVerify() {
       }));
 
       // 3. Wait for user to scan QR and complete verification
-      const idkitResponse = await request.pollUntilCompletion();
+      const completion = await request.pollUntilCompletion();
+
+      if (!completion.success) {
+        throw new Error("World ID verification was rejected");
+      }
 
       setState((prev) => ({ ...prev, status: "verifying", connectUrl: null }));
 
-      // 4. Send proof to our backend — it verifies, creates/finds user, returns JWT
-      const authResult = await verifyAndAuthenticate(idkitResponse);
+      // 4. Send the IDKit result (not the wrapper) to our backend
+      const authResult = await verifyAndAuthenticate(completion.result);
 
       setState({
         status: "success",
