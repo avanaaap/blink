@@ -1,0 +1,61 @@
+import { useState, useCallback } from "react";
+import { IDKit, orbLegacy } from "@worldcoin/idkit-core";
+import { getRpSignature, verifyProof } from "../api/worldid-api";
+
+const APP_ID = import.meta.env.VITE_WORLDID_APP_ID ?? "";
+const RP_ID = import.meta.env.VITE_WORLDID_RP_ID ?? "";
+const ACTION = "verify-blink-user";
+
+type VerifyState = {
+  status: "idle" | "signing" | "waiting" | "verifying" | "success" | "error";
+  error: string | null;
+};
+
+export function useWorldIdVerify(userId: string) {
+  const [state, setState] = useState<VerifyState>({
+    status: "idle",
+    error: null,
+  });
+
+  const verify = useCallback(async () => {
+    try {
+      setState({ status: "signing", error: null });
+
+      // 1. Get RP signature from our backend
+      const rpSig = await getRpSignature(ACTION);
+
+      setState({ status: "waiting", error: null });
+
+      // 2. Open IDKit and wait for user to complete verification
+      const request = await IDKit.request({
+        app_id: APP_ID,
+        action: ACTION,
+        rp_context: {
+          rp_id: RP_ID,
+          nonce: rpSig.nonce,
+          created_at: rpSig.created_at,
+          expires_at: rpSig.expires_at,
+          signature: rpSig.sig,
+        },
+        allow_legacy_proofs: true,
+        environment: "production",
+        return_to: "blink://verify-done",
+      }).preset(orbLegacy({ signal: userId }));
+
+      const idkitResponse = await request.pollUntilCompletion();
+
+      setState({ status: "verifying", error: null });
+
+      // 3. Send proof to our backend for verification + nullifier storage
+      await verifyProof(idkitResponse);
+
+      setState({ status: "success", error: null });
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : "Verification failed";
+      setState({ status: "error", error: message });
+    }
+  }, [userId]);
+
+  return { ...state, verify };
+}
