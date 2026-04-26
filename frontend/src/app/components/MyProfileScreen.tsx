@@ -171,6 +171,13 @@ export function MyProfileScreen() {
           </div>
 
           <div className="space-y-4 p-6">
+            {profile.bio && (
+              <div className="rounded-2xl border border-neutral-200 bg-[#faf7f3] p-4">
+                <p className="text-xs uppercase tracking-wide text-neutral-500">Bio</p>
+                <p className="mt-2 text-sm text-neutral-700">{profile.bio}</p>
+              </div>
+            )}
+
             <div className="rounded-2xl border border-neutral-200 bg-[#faf7f3] p-4">
               <p className="text-xs uppercase tracking-wide text-neutral-500">Interests</p>
               <div className="mt-3 flex flex-wrap gap-2">

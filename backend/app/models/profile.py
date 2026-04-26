@@ -27,6 +27,7 @@ class ProfileUpdate(BaseModel):
     relationship_type: RelationshipType | None = None
     age_range_min: int | None = None
     age_range_max: int | None = None
+    bio: str | None = Field(default=None, max_length=150)
     interests: str | None = Field(default=None, max_length=150)
     relationship_meaning: str | None = Field(default=None, max_length=150)
     time_with_partner: str | None = Field(default=None, max_length=150)
@@ -51,6 +52,7 @@ class ProfileResponse(BaseModel):
     relationship_type: RelationshipType | None = None
     age_range_min: int = 18
     age_range_max: int = 80
+    bio: str = ""
     interests: str = ""
     relationship_meaning: str = ""
     time_with_partner: str = ""

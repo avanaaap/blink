@@ -187,7 +187,7 @@ async def get_partner_reveal(
 
     partner = (
         sb.table("profiles")
-        .select("name, age, interests")
+        .select("name, age, bio, interests")
         .eq("id", partner_id)
         .single()
         .execute()
@@ -205,6 +205,7 @@ async def get_partner_reveal(
     return PartnerReveal(
         name=partner_data.get("name", "Unknown"),
         age=partner_data.get("age"),
+        bio=partner_data.get("bio", ""),
         interests=partner_data.get("interests", ""),
         compatibility_score=match.get("compatibility_score"),
         photos=[

@@ -41,6 +41,7 @@ class PartnerReveal(BaseModel):
 
     name: str
     age: int | None = None
+    bio: str = ""
     interests: str = ""
     compatibility_score: int | None = None
     photos: list[PhotoOut] = []
