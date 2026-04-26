@@ -70,7 +70,7 @@ async def get_agora_token(
     if uid not in (match["user_a"], match["user_b"]):
         raise HTTPException(status_code=403, detail="Not your match")
 
-    if match.get("status") not in ("pending", "active"):
+    if match.get("status") not in ("pending", "active", "connected"):
         raise HTTPException(
             status_code=400,
             detail="Match is no longer active",
