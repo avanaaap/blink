@@ -18,7 +18,6 @@ type MessageType = {
   timestamp: string;
 };
 
-const HISTORY_STORAGE_KEY = 'blink.conversationHistory';
 const TIMER_STORAGE_KEY_PREFIX = 'blink.chatTimerEndMs';
 
 export function ChatScreen() {
@@ -53,17 +52,6 @@ export function ChatScreen() {
   const voiceUnlocked = unlockLevel >= 1;
   const videoUnlocked = unlockLevel >= 2;
 
-  const saveConversationSnapshot = (title: string) => {
-    const raw = localStorage.getItem(HISTORY_STORAGE_KEY);
-    const existing = raw ? (JSON.parse(raw) as Array<{ id: string; endedAt: string; title: string; messages: MessageType[] }>) : [];
-    const snapshot = {
-      id: `${Date.now()}`,
-      endedAt: new Date().toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }),
-      title,
-      messages,
-    };
-    localStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify([snapshot, ...existing].slice(0, 20)));
-  };
 
   useEffect(() => {
     const moveTimer = setTimeout(() => {
@@ -94,7 +82,6 @@ export function ChatScreen() {
       if (remaining <= 0) {
         clearInterval(timer);
         localStorage.removeItem(timerStorageKey);
-        saveConversationSnapshot('Conversation ended by timer');
         navigate(`${APP_ROUTES.rating}?matchId=${matchId}&unlockLevel=${unlockLevel}`);
       }
     }, 1000);
@@ -175,7 +162,6 @@ export function ChatScreen() {
   };
 
   const handleBack = () => {
-    saveConversationSnapshot('Conversation viewed from back navigation');
     navigate(APP_ROUTES.match);
   };
 
@@ -183,7 +169,6 @@ export function ChatScreen() {
     if (unlockLevel < 4) {
       localStorage.removeItem(timerStorageKey);
     }
-    saveConversationSnapshot('Conversation ended by user');
     navigate(`${APP_ROUTES.rating}?matchId=${matchId}&optedOut=true&unlockLevel=${unlockLevel}`);
   };
 
@@ -216,7 +201,7 @@ export function ChatScreen() {
         <div className="max-w-3xl mx-auto flex items-center justify-between">
           <button
             onClick={handleBack}
-            className="flex items-center gap-2 text-neutral-600 hover:text-black"
+            className="flex items-center gap-2 text-[#4A3B32]/70 hover:text-[#4A3B32]"
             aria-label="Back to conversation history"
           >
             <ArrowLeft size={20} />
@@ -230,14 +215,14 @@ export function ChatScreen() {
           <div className="flex items-center gap-3">
             <button
               onClick={() => setShowReportModal(true)}
-              className="text-neutral-600 hover:text-black"
+              className="text-[#4A3B32]/70 hover:text-[#4A3B32]"
               aria-label="Report conversation"
             >
               <Flag size={20} />
             </button>
             <button
               onClick={() => setShowEndConfirmation(true)}
-              className="text-neutral-600 hover:text-black"
+              className="text-[#4A3B32]/70 hover:text-[#4A3B32]"
               aria-label="End conversation"
             >
               <X size={20} />
@@ -261,7 +246,7 @@ export function ChatScreen() {
                 <button
                   key={idx}
                   onClick={() => setInputValue(question)}
-                  className="text-left px-4 py-3 bg-white border border-neutral-300 rounded-lg hover:border-black transition-colors"
+                  className="text-left px-4 py-3 bg-white border border-neutral-300 rounded-lg hover:border-[#4A3B32] transition-colors"
                 >
                   {question}
                 </button>
@@ -283,7 +268,7 @@ export function ChatScreen() {
                   className={`px-4 py-3 rounded-2xl ${
                     message.sender === 'me'
                       ? 'bg-[#4A3B32] text-white'
-                      : 'bg-neutral-100 text-black'
+                      : 'bg-[#D4A574]/15 text-[#4A3B32]'
                   }`}
                 >
                   <span>{message.text}</span>
@@ -340,7 +325,7 @@ export function ChatScreen() {
               onChange={(e) => setInputValue(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && sendMessage()}
               placeholder="Type your message..."
-              className="flex-1 px-4 py-3 border border-neutral-300 rounded-full focus:outline-none focus:border-black"
+              className="flex-1 px-4 py-3 border border-neutral-300 rounded-full focus:outline-none focus:border-[#4A3B32]"
             />
             <button
               onClick={sendMessage}
@@ -354,7 +339,7 @@ export function ChatScreen() {
       </div>
 
       {showEndConfirmation && (
-        <div className="fixed inset-0 z-[70] bg-black/50 flex items-center justify-center px-6">
+        <div className="fixed inset-0 z-[70] bg-[#4A3B32]/70 flex items-center justify-center px-6">
           <div className="bg-white rounded-3xl p-8 max-w-md w-full">
             <h2 className="text-2xl mb-4">End Conversation?</h2>
             <p className="text-neutral-600 mb-6">

@@ -7,7 +7,7 @@ export const APP_ROUTES = {
   profile: "/profile",
   match: "/match",
   chat: "/chat",
-  conversationHistory: "/conversation-history",
+
   voiceCall: "/voice-call",
   videoCall: "/video-call",
   rating: "/rating",

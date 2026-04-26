@@ -47,7 +47,7 @@ export function ReportModal({ isOpen, sourceLabel, onClose }: ReportModalProps) 
   }
 
   return (
-    <div className="fixed inset-0 z-[90] flex items-center justify-center bg-black/50 px-6">
+    <div className="fixed inset-0 z-[90] flex items-center justify-center bg-[#4A3B32]/70 px-6">
       <div className="w-full max-w-md rounded-3xl border border-neutral-200 bg-white p-7 shadow-xl">
         {!submitted ? (
           <>
@@ -62,7 +62,7 @@ export function ReportModal({ isOpen, sourceLabel, onClose }: ReportModalProps) 
                   className={[
                     'rounded-xl border px-4 py-3 text-left transition-colors',
                     selectedReason === reason
-                      ? 'border-black bg-black text-white'
+                      ? 'border-[#4A3B32] bg-[#4A3B32] text-white'
                       : 'border-neutral-300 bg-white text-neutral-800 hover:border-neutral-500',
                   ].join(' ')}
                 >
@@ -76,7 +76,7 @@ export function ReportModal({ isOpen, sourceLabel, onClose }: ReportModalProps) 
               value={details}
               onChange={(event) => setDetails(event.target.value)}
               placeholder="Share anything that would help us review this report"
-              className="mt-2 w-full resize-none rounded-xl border border-neutral-300 px-4 py-3 focus:border-black focus:outline-none"
+              className="mt-2 w-full resize-none rounded-xl border border-neutral-300 px-4 py-3 focus:border-[#4A3B32] focus:outline-none"
               rows={4}
             />
 

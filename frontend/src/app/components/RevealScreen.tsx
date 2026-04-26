@@ -56,7 +56,7 @@ export function RevealScreen() {
       <div className="max-w-2xl mx-auto px-6 py-8">
         {!showProfile ? (
           <div className="flex flex-col items-center justify-center min-h-[80vh] gap-8">
-            <BlinkLogo size={100} className="text-black animate-pulse" />
+            <BlinkLogo size={100} className="text-[#4A3B32] animate-pulse" />
             <div className="text-center">
               <h1 className="text-5xl mb-4">Congratulations!</h1>
               <p className="text-xl text-neutral-600 mb-2">
@@ -86,13 +86,13 @@ export function RevealScreen() {
             <div className="flex items-center justify-between">
               <button
                 onClick={() => navigate(APP_ROUTES.match)}
-                className="text-neutral-600 hover:text-black"
+                className="text-[#4A3B32]/70 hover:text-[#4A3B32]"
               >
                 <X size={24} />
               </button>
               <button
                 onClick={() => setShowReportModal(true)}
-                className="text-neutral-600 hover:text-black"
+                className="text-[#4A3B32]/70 hover:text-[#4A3B32]"
                 aria-label="Report from profile screen"
               >
                 <Flag size={20} />
@@ -112,13 +112,13 @@ export function RevealScreen() {
                     <div className="absolute inset-0 flex items-center justify-between px-4">
                       <button
                         onClick={prevPhoto}
-                        className="w-10 h-10 rounded-full bg-black/50 text-white flex items-center justify-center hover:bg-black/75 backdrop-blur-sm transition-colors"
+                        className="w-10 h-10 rounded-full bg-[#4A3B32]/50 text-white flex items-center justify-center hover:bg-[#4A3B32]/75 backdrop-blur-sm transition-colors"
                       >
                         <ChevronLeft size={24} />
                       </button>
                       <button
                         onClick={nextPhoto}
-                        className="w-10 h-10 rounded-full bg-black/50 text-white flex items-center justify-center hover:bg-black/75 backdrop-blur-sm transition-colors"
+                        className="w-10 h-10 rounded-full bg-[#4A3B32]/50 text-white flex items-center justify-center hover:bg-[#4A3B32]/75 backdrop-blur-sm transition-colors"
                       >
                         <ChevronRight size={24} />
                       </button>
@@ -126,7 +126,7 @@ export function RevealScreen() {
                   )}
 
                   {photos[currentPhotoIndex].caption && (
-                    <div className="absolute bottom-0 left-0 right-0 bg-black/70 px-4 py-3">
+                    <div className="absolute bottom-0 left-0 right-0 bg-[#4A3B32]/70 px-4 py-3">
                       <p className="text-sm text-white">
                         {photos[currentPhotoIndex].caption}
                       </p>
@@ -134,7 +134,7 @@ export function RevealScreen() {
                   )}
 
                   {photos.length > 1 && (
-                    <div className="absolute left-1/2 top-3 flex -translate-x-1/2 gap-1.5 rounded-full bg-black/35 px-3 py-1">
+                    <div className="absolute left-1/2 top-3 flex -translate-x-1/2 gap-1.5 rounded-full bg-[#4A3B32]/40 px-3 py-1">
                       {photos.map((_, idx) => (
                         <div
                           key={idx}

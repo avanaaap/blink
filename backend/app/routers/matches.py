@@ -73,6 +73,27 @@ async def get_today_match(user: dict = Depends(get_current_user)):
     return _build_match_detail(sb, new_match, uid)
 
 
+@router.get("/all", response_model=list[MatchDetail])
+async def get_all_matches(user: dict = Depends(get_current_user)):
+    """Return all non-unmatched matches for the current user (excluding today's)."""
+    sb = get_supabase()
+    uid = user["id"]
+    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+
+    result = (
+        sb.table("matches")
+        .select("*")
+        .or_(f"user_a.eq.{uid},user_b.eq.{uid}")
+        .neq("status", "unmatched")
+        .neq("match_date", today)
+        .order("created_at", desc=True)
+        .limit(50)
+        .execute()
+    )
+
+    return [_build_match_detail(sb, m, uid) for m in (result.data or [])]
+
+
 @router.patch("/{match_id}/unlock", response_model=MatchDetail)
 async def update_unlock_level(
     match_id: str,

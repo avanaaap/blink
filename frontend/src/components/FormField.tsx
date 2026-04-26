@@ -10,7 +10,7 @@ export function FormField({ label, className = "", ...props }: FormFieldProps) {
       <span className="mb-2 block text-sm text-neutral-700">{label}</span>
       <input
         className={[
-          "w-full rounded-lg border border-neutral-300 px-4 py-3 focus:border-black focus:outline-none",
+          "w-full rounded-lg border border-neutral-300 px-4 py-3 focus:border-[#4A3B32] focus:outline-none",
           className,
         ].join(" ")}
         {...props}

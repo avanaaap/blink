@@ -16,14 +16,14 @@ export function SettingsScreen() {
       <div className="max-w-2xl mx-auto px-6 py-8">
         <button
           onClick={() => navigate(APP_ROUTES.match)}
-          className="flex items-center gap-2 text-neutral-600 hover:text-black mb-8"
+          className="flex items-center gap-2 text-[#4A3B32]/70 hover:text-[#4A3B32] mb-8"
         >
           <ArrowLeft size={20} />
           Back
         </button>
 
         <div className="flex flex-col items-center gap-4 mb-12">
-          <BlinkLogo size={60} className="text-black" />
+          <BlinkLogo size={60} className="text-[#4A3B32]" />
           <h1 className="text-3xl">Settings</h1>
         </div>
 

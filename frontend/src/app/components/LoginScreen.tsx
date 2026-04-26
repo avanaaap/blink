@@ -22,7 +22,7 @@ export function LoginScreen() {
         <BackButton onClick={() => navigate(APP_ROUTES.landing)} />
 
         <div className="flex flex-col items-center gap-6 mb-12">
-          <BlinkLogo size={80} className="text-black" />
+          <BlinkLogo size={80} className="text-[#4A3B32]" />
           <h1 className="text-3xl">Welcome Back</h1>
         </div>
 
