@@ -145,6 +145,32 @@ async def update_unlock_level(
     )
 
 
+@router.post("/{match_id}/decline")
+async def decline_match(
+    match_id: str,
+    user: dict = Depends(get_current_user),
+):
+    """Decline / end a match — sets status to unmatched."""
+    sb = get_supabase()
+    uid = user["id"]
+
+    match_row = (
+        sb.table("matches").select("*").eq("id", match_id).single().execute()
+    )
+    if not match_row.data:
+        raise HTTPException(status_code=404, detail="Match not found")
+
+    match = match_row.data
+    if uid not in (match["user_a"], match["user_b"]):
+        raise HTTPException(status_code=403, detail="Not your match")
+
+    if match["status"] == "unmatched":
+        raise HTTPException(status_code=400, detail="Match already ended")
+
+    sb.table("matches").update({"status": "unmatched"}).eq("id", match_id).execute()
+    return {"detail": "Match declined"}
+
+
 @router.get("/{match_id}/reveal", response_model=PartnerReveal)
 async def get_partner_reveal(
     match_id: str,
