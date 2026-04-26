@@ -26,7 +26,7 @@ export function VoiceCallScreen() {
 
   const endCall = () => {
     if (unlockLevel >= 4) {
-      navigate(APP_ROUTES.connection);
+      navigate(`${APP_ROUTES.connection}?callType=voice&unlockLevel=${unlockLevel}`);
     } else {
       navigate(`${APP_ROUTES.rating}?unlockLevel=${unlockLevel}&callType=voice`);
     }

@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { BlinkLogo } from './BlinkLogo';
-import { Settings, LogOut } from 'lucide-react';
+import { Settings, LogOut, MessageCircle, Phone, Video, Flag } from 'lucide-react';
 import { APP_ROUTES } from '../../lib/routes';
 import { matchProfile } from '../../lib/mock-data';
 import { Button } from '../../components/Button';
 import { getTodayMatch } from '../../lib/api/match-api';
+import { ReportModal } from '../../components/ReportModal';
 
 export function DashboardScreen() {
   const navigate = useNavigate();
@@ -17,6 +18,12 @@ export function DashboardScreen() {
   const [match, setMatch] = useState(matchProfile);
   const [isLoadingMatch, setIsLoadingMatch] = useState(true);
   const [dataSource, setDataSource] = useState<"api" | "mock">("mock");
+  const [showReportModal, setShowReportModal] = useState(false);
+  const [showVoiceUnlockGlow, setShowVoiceUnlockGlow] = useState(false);
+  const [showVideoUnlockGlow, setShowVideoUnlockGlow] = useState(false);
+
+  const voiceUnlocked = unlockLevel >= 1;
+  const videoUnlocked = unlockLevel >= 2;
 
   useEffect(() => {
     const load = async () => {
@@ -29,6 +36,26 @@ export function DashboardScreen() {
     void load();
   }, []);
 
+  useEffect(() => {
+    if (!voiceUnlocked) {
+      return;
+    }
+
+    setShowVoiceUnlockGlow(true);
+    const timer = setTimeout(() => setShowVoiceUnlockGlow(false), 2200);
+    return () => clearTimeout(timer);
+  }, [voiceUnlocked]);
+
+  useEffect(() => {
+    if (!videoUnlocked) {
+      return;
+    }
+
+    setShowVideoUnlockGlow(true);
+    const timer = setTimeout(() => setShowVideoUnlockGlow(false), 2200);
+    return () => clearTimeout(timer);
+  }, [videoUnlocked]);
+
   const sharedInterests = match.interests.slice(0, 3);
 
   return (
@@ -36,7 +63,14 @@ export function DashboardScreen() {
       <div className="max-w-2xl mx-auto px-6 py-8">
         <div className="flex items-center justify-between mb-12">
           <BlinkLogo size={50} className="text-black" />
-          <div className="flex gap-4">
+          <div className="flex gap-3">
+            <button
+              onClick={() => setShowReportModal(true)}
+              className="p-2 hover:bg-neutral-100 rounded-full transition-colors"
+              aria-label="Report from match screen"
+            >
+              <Flag size={24} />
+            </button>
             <button
               onClick={() => navigate(APP_ROUTES.settings)}
               className="p-2 hover:bg-neutral-100 rounded-full transition-colors"
@@ -99,26 +133,51 @@ export function DashboardScreen() {
               </div>
             </div>
 
-            <div className="flex flex-col gap-4 w-full max-w-sm">
-              <div className="text-center mb-2">
-                <p className="text-neutral-600">
-                  {unlockLevel === 0 && 'This text chat will last for 60 minutes.'}
-                  {unlockLevel === 1 && 'This voice call will last for 60 minutes.'}
-                  {unlockLevel >= 2 && 'This video call will last for 60 minutes.'}
-                </p>
+            <div className="flex flex-col gap-3 w-full max-w-sm">
+              <div className="rounded-xl border border-neutral-200 bg-white p-3.5">
+                <h3 className="mb-2 text-[13px] text-neutral-600">Conversation-first unlock flow</h3>
+                <div className="space-y-1.5 text-sm">
+                  <button
+                    onClick={() => navigate(`${APP_ROUTES.chat}?unlockLevel=${unlockLevel}`)}
+                    className="flex w-full items-center justify-between rounded-lg border border-[#4A3B32] bg-[#4A3B32] px-3 py-1.5 text-left text-white"
+                  >
+                    <span className="flex items-center gap-2"><MessageCircle size={15} /> Text Messages</span>
+                    <span className="text-[11px] text-white/90">Available</span>
+                  </button>
+                  <button
+                    onClick={() => voiceUnlocked && navigate(`${APP_ROUTES.voiceCall}?unlockLevel=1`)}
+                    disabled={!voiceUnlocked}
+                    className={[
+                      'flex w-full items-center justify-between rounded-lg border px-3 py-1.5 text-left transition-colors',
+                      voiceUnlocked
+                        ? 'border-[#4A3B32] bg-[#4A3B32] text-white'
+                        : 'cursor-not-allowed border-neutral-200 bg-white text-neutral-500',
+                      showVoiceUnlockGlow ? 'voice-unlock-glow' : '',
+                    ].join(' ')}
+                  >
+                    <span className="flex items-center gap-2"><Phone size={15} /> Voice Call</span>
+                    <span className={voiceUnlocked ? 'text-[11px] text-white/90' : 'text-[11px] text-neutral-500'}>
+                      {voiceUnlocked ? 'Available' : 'Unavailable'}
+                    </span>
+                  </button>
+                  <button
+                    onClick={() => videoUnlocked && navigate(`${APP_ROUTES.videoCall}?unlockLevel=2`)}
+                    disabled={!videoUnlocked}
+                    className={[
+                      'flex w-full items-center justify-between rounded-lg border px-3 py-1.5 text-left transition-colors',
+                      videoUnlocked
+                        ? 'border-[#4A3B32] bg-[#4A3B32] text-white'
+                        : 'cursor-not-allowed border-neutral-200 bg-white text-neutral-500',
+                      showVideoUnlockGlow ? 'voice-unlock-glow' : '',
+                    ].join(' ')}
+                  >
+                    <span className="flex items-center gap-2"><Video size={15} /> Video Call</span>
+                    <span className={videoUnlocked ? 'text-[11px] text-white/90' : 'text-[11px] text-neutral-500'}>
+                      {videoUnlocked ? 'Available' : 'Unavailable'}
+                    </span>
+                  </button>
+                </div>
               </div>
-              <Button
-                onClick={() => {
-                  if (unlockLevel === 0) navigate(`${APP_ROUTES.chat}?unlockLevel=${unlockLevel}`);
-                  else if (unlockLevel === 1) navigate(`${APP_ROUTES.voiceCall}?unlockLevel=${unlockLevel}`);
-                  else if (unlockLevel >= 2) navigate(`${APP_ROUTES.videoCall}?unlockLevel=${unlockLevel}`);
-                }}
-                fullWidth
-              >
-                {unlockLevel === 0 && 'Start Conversation'}
-                {unlockLevel === 1 && 'Start Voice Call'}
-                {unlockLevel >= 2 && 'Start Video Call'}
-              </Button>
               <Button
                 onClick={() => setHasMatch(false)}
                 variant="outline"
@@ -149,6 +208,12 @@ export function DashboardScreen() {
           </div>
         )}
       </div>
+
+      <ReportModal
+        isOpen={showReportModal}
+        sourceLabel="From match screen"
+        onClose={() => setShowReportModal(false)}
+      />
     </div>
   );
 }

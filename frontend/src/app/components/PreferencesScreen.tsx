@@ -1,12 +1,15 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { BlinkLogo } from './BlinkLogo';
 import { ChevronRight, ChevronLeft } from 'lucide-react';
 import { APP_ROUTES } from '../../lib/routes';
 import { updateMyProfile } from '../../lib/api/profile-api';
+import type { Profile } from '../../lib/types';
 
 export function PreferencesScreen() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const isEditMode = searchParams.get('mode') === 'edit';
   const [step, setStep] = useState(0);
   const [saving, setSaving] = useState(false);
   const [preferences, setPreferences] = useState({
@@ -65,23 +68,23 @@ export function PreferencesScreen() {
     });
   };
 
-  const buildProfilePayload = () => ({
+  const buildProfilePayload = (): Partial<Profile> => ({
     name: preferences.name,
     age: Number(preferences.age),
-    interested_in: preferences.interestedIn,
-    relationship_type: preferences.relationshipType || undefined,
+    interested_in: preferences.interestedIn as Profile['interested_in'],
+    relationship_type: (preferences.relationshipType || undefined) as Profile['relationship_type'],
     age_range_min: preferences.ageRange[0],
     age_range_max: preferences.ageRange[1],
-    interests: preferences.interests,
-    relationship_meaning: preferences.relationshipMeaning,
-    time_with_partner: preferences.timeWithPartner,
-    conflict_style: preferences.conflictStyle || undefined,
-    island_scenario: preferences.islandScenario || undefined,
-    musical_instrument: preferences.musicalInstrument || undefined,
-    sexuality: preferences.sexuality || undefined,
-    spending_habits: preferences.spendingHabits || undefined,
-    has_debt: preferences.hasDebt || undefined,
-    wants_kids: preferences.wantsKids || undefined,
+    interests: preferences.interests as Profile['interests'],
+    relationship_meaning: preferences.relationshipMeaning as Profile['relationship_meaning'],
+    time_with_partner: preferences.timeWithPartner as Profile['time_with_partner'],
+    conflict_style: (preferences.conflictStyle || undefined) as Profile['conflict_style'],
+    island_scenario: (preferences.islandScenario || undefined) as Profile['island_scenario'],
+    musical_instrument: (preferences.musicalInstrument || undefined) as Profile['musical_instrument'],
+    sexuality: (preferences.sexuality || undefined) as Profile['sexuality'],
+    spending_habits: (preferences.spendingHabits || undefined) as Profile['spending_habits'],
+    has_debt: (preferences.hasDebt || undefined) as Profile['has_debt'],
+    wants_kids: (preferences.wantsKids || undefined) as Profile['wants_kids'],
   });
 
   const handleSaveAndExit = async () => {
@@ -154,7 +157,7 @@ export function PreferencesScreen() {
 
         <div className="flex flex-col items-center gap-4 mb-8">
           <BlinkLogo size={60} className="text-black" />
-          <h1 className="text-3xl">Build Your Profile</h1>
+          <h1 className="text-3xl">{isEditMode ? 'Edit Your Profile' : 'Build Your Profile'}</h1>
           <div className="flex gap-2">
             {[0, 1, 2, 3, 4, 5, 6].map(s => (
               <div

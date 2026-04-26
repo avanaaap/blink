@@ -33,8 +33,11 @@ export function SettingsScreen() {
               Account
             </h2>
             <div className="flex flex-col gap-3">
-              <button className="text-left px-4 py-3 rounded-lg hover:bg-neutral-50 transition-colors">
-                Edit Profile
+              <button
+                onClick={() => navigate(APP_ROUTES.myProfile)}
+                className="text-left px-4 py-3 rounded-lg hover:bg-neutral-50 transition-colors"
+              >
+                View Profile
               </button>
               <button className="text-left px-4 py-3 rounded-lg hover:bg-neutral-50 transition-colors">
                 Change Password
@@ -49,7 +52,7 @@ export function SettingsScreen() {
             </h2>
             <div className="flex flex-col gap-3">
               <button
-                onClick={() => navigate(APP_ROUTES.preferences)}
+                onClick={() => navigate(`${APP_ROUTES.preferences}?mode=edit`)}
                 className="text-left px-4 py-3 rounded-lg hover:bg-neutral-50 transition-colors"
               >
                 Update Match Preferences

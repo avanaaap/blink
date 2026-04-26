@@ -27,7 +27,7 @@ export function VideoCallScreen() {
 
   const endCall = () => {
     if (unlockLevel >= 4) {
-      navigate(APP_ROUTES.connection);
+      navigate(`${APP_ROUTES.connection}?callType=video&unlockLevel=${unlockLevel}`);
     } else {
       navigate(`${APP_ROUTES.rating}?unlockLevel=${unlockLevel}&callType=video`);
     }

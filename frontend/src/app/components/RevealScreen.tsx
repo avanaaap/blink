@@ -1,15 +1,17 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { BlinkLogo } from './BlinkLogo';
-import { Heart, X, ChevronLeft, ChevronRight, Calendar } from 'lucide-react';
+import { Heart, X, ChevronLeft, ChevronRight, Calendar, Flag } from 'lucide-react';
 import { APP_ROUTES } from '../../lib/routes';
 import { matchProfile } from '../../lib/mock-data';
 import { Button } from '../../components/Button';
+import { ReportModal } from '../../components/ReportModal';
 
 export function RevealScreen() {
   const navigate = useNavigate();
   const [showProfile, setShowProfile] = useState(false);
   const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0);
+  const [showReportModal, setShowReportModal] = useState(false);
 
   const nextPhoto = () => {
     setCurrentPhotoIndex((prev) => (prev + 1) % matchProfile.photos.length);
@@ -40,24 +42,32 @@ export function RevealScreen() {
             </Button>
           </div>
         ) : (
-          <div className="flex flex-col gap-8">
-            <button
-              onClick={() => navigate(APP_ROUTES.match)}
-              className="self-start text-neutral-600 hover:text-black"
-            >
-              <X size={24} />
-            </button>
+          <div className="flex flex-col gap-6">
+            <div className="flex items-center justify-between">
+              <button
+                onClick={() => navigate(APP_ROUTES.match)}
+                className="text-neutral-600 hover:text-black"
+              >
+                <X size={24} />
+              </button>
+              <button
+                onClick={() => setShowReportModal(true)}
+                className="text-neutral-600 hover:text-black"
+                aria-label="Report from profile screen"
+              >
+                <Flag size={20} />
+              </button>
+            </div>
 
-            <div className="bg-neutral-50 rounded-3xl overflow-hidden border-2 border-neutral-200">
-              <div className="relative aspect-[3/4] bg-neutral-900 group">
+            <div className="overflow-hidden rounded-3xl border-2 border-neutral-200 bg-white shadow-sm">
+              <div className="relative aspect-[4/3] bg-neutral-900">
                 <img
                   src={matchProfile.photos[currentPhotoIndex].url}
                   alt={`Profile picture ${currentPhotoIndex + 1}`}
                   className="w-full h-full object-cover"
                 />
-                
-                {/* Image Navigation */}
-                <div className="absolute inset-0 flex items-center justify-between px-4 opacity-0 group-hover:opacity-100 transition-opacity">
+
+                <div className="absolute inset-0 flex items-center justify-between px-4">
                   <button 
                     onClick={prevPhoto}
                     className="w-10 h-10 rounded-full bg-black/50 text-white flex items-center justify-center hover:bg-black/75 backdrop-blur-sm transition-colors"
@@ -72,41 +82,40 @@ export function RevealScreen() {
                   </button>
                 </div>
 
-                {/* Caption overlay */}
-                <div className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-black/80 via-black/40 to-transparent">
-                  <p className="text-white text-lg font-medium leading-snug drop-shadow-md">
+                <div className="absolute bottom-0 left-0 right-0 bg-black/70 px-4 py-3">
+                  <p className="text-sm text-white">
                     {matchProfile.photos[currentPhotoIndex].caption}
                   </p>
                 </div>
 
-                {/* Progress Indicators */}
-                <div className="absolute top-4 left-0 right-0 flex justify-center gap-2 px-4">
+                <div className="absolute left-1/2 top-3 flex -translate-x-1/2 gap-1.5 rounded-full bg-black/35 px-3 py-1">
                   {matchProfile.photos.map((_, idx) => (
                     <div 
                       key={idx}
-                      className={`h-1 flex-1 rounded-full transition-colors ${idx === currentPhotoIndex ? 'bg-white' : 'bg-white/40'}`}
+                      className={`h-1.5 w-5 rounded-full transition-colors ${idx === currentPhotoIndex ? 'bg-white' : 'bg-white/40'}`}
                     />
                   ))}
                 </div>
               </div>
 
-              <div className="p-8">
-                <div className="mb-6">
-                  <h2 className="text-3xl mb-1">{matchProfile.name}, {matchProfile.age}</h2>
-                  <p className="text-neutral-600">{matchProfile.location}</p>
+              <div className="space-y-4 p-6">
+                <div className="rounded-2xl border border-neutral-200 bg-[#faf7f3] p-4">
+                  <h2 className="text-2xl">{matchProfile.name}, {matchProfile.age}</h2>
+                  <p className="mt-1 text-sm text-neutral-600">{matchProfile.location}</p>
                 </div>
 
-                <p className="text-neutral-700 mb-6 leading-relaxed">
-                  {matchProfile.bio}
-                </p>
+                <div className="rounded-2xl border border-neutral-200 p-4">
+                  <h3 className="mb-2 text-base">About</h3>
+                  <p className="text-sm leading-relaxed text-neutral-700">{matchProfile.bio}</p>
+                </div>
 
-                <div className="mb-8">
-                  <h3 className="text-sm text-neutral-600 mb-3">Interests</h3>
+                <div className="rounded-2xl border border-neutral-200 p-4">
+                  <h3 className="mb-3 text-base">Interests</h3>
                   <div className="flex flex-wrap gap-2">
                     {matchProfile.interests.map(interest => (
                       <span
                         key={interest}
-                        className="px-4 py-2 bg-white border border-neutral-300 rounded-full text-sm"
+                        className="rounded-full border border-neutral-300 bg-white px-3 py-1 text-xs text-neutral-700"
                       >
                         {interest}
                       </span>
@@ -114,17 +123,17 @@ export function RevealScreen() {
                   </div>
                 </div>
 
-                <div className="flex gap-4">
+                <div className="grid gap-3 sm:grid-cols-2">
                   <button
                     onClick={() => navigate(APP_ROUTES.connection)}
-                    className="flex-1 bg-[#4A3B32] text-white py-4 px-6 rounded-full hover:bg-[#322822] transition-colors flex items-center justify-center gap-2"
+                    className="rounded-full bg-[#4A3B32] px-6 py-3 text-white transition-colors hover:bg-[#322822] flex items-center justify-center gap-2"
                   >
                     <Calendar size={20} />
                     Schedule Meeting
                   </button>
                   <button
                     onClick={() => navigate(APP_ROUTES.match)}
-                    className="flex-1 border-2 border-[#4A3B32] text-[#4A3B32] py-4 px-6 rounded-full hover:bg-neutral-50 transition-colors flex items-center justify-center gap-2"
+                    className="rounded-full border border-[#4A3B32] px-6 py-3 text-[#4A3B32] hover:bg-neutral-50 transition-colors flex items-center justify-center gap-2"
                   >
                     <X size={20} />
                     Keep Exploring
@@ -135,6 +144,12 @@ export function RevealScreen() {
           </div>
         )}
       </div>
+
+      <ReportModal
+        isOpen={showReportModal}
+        sourceLabel="From profile screen"
+        onClose={() => setShowReportModal(false)}
+      />
     </div>
   );
 }

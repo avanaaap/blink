@@ -1,9 +1,10 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { ArrowLeft, Send, X, Clock, Phone, Video } from 'lucide-react';
+import { ArrowLeft, Send, X, Clock, Phone, Video, Flag } from 'lucide-react';
 import { UnlockProgressBar } from './UnlockProgressBar';
 import { APP_ROUTES } from '../../lib/routes';
 import { starterQuestions } from '../../lib/mock-data';
+import { ReportModal } from '../../components/ReportModal';
 
 type MessageType = {
   text: string;
@@ -11,18 +12,50 @@ type MessageType = {
   timestamp: string;
 };
 
+const HISTORY_STORAGE_KEY = 'blink.conversationHistory';
+const TIMER_STORAGE_KEY_PREFIX = 'blink.chatTimerEndMs';
+
 export function ChatScreen() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const unlockLevel = parseInt(searchParams.get('unlockLevel') || '0');
   const [messages, setMessages] = useState<MessageType[]>([]);
   const [inputValue, setInputValue] = useState('');
-  const [timeRemaining, setTimeRemaining] = useState(unlockLevel >= 4 ? Infinity : 3600);
+  const timerStorageKey = `${TIMER_STORAGE_KEY_PREFIX}.${unlockLevel}`;
+  const [timeRemaining, setTimeRemaining] = useState(() => {
+    if (unlockLevel >= 4) return Infinity;
+
+    const existingEndMs = localStorage.getItem(timerStorageKey);
+    if (existingEndMs) {
+      const remaining = Math.max(0, Math.ceil((Number(existingEndMs) - Date.now()) / 1000));
+      return remaining;
+    }
+
+    const endMs = Date.now() + 3600 * 1000;
+    localStorage.setItem(timerStorageKey, String(endMs));
+    return 3600;
+  });
   const [timerState, setTimerState] = useState<'center' | 'moving' | 'top'>('center');
-  const [showOptOut, setShowOptOut] = useState(false);
+  const [showEndConfirmation, setShowEndConfirmation] = useState(false);
   const [showUnlockProgress, setShowUnlockProgress] = useState(true);
   const [reminder, setReminder] = useState<string | null>(null);
+  const [showReportModal, setShowReportModal] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  const voiceUnlocked = unlockLevel >= 1;
+  const videoUnlocked = unlockLevel >= 2;
+
+  const saveConversationSnapshot = (title: string) => {
+    const raw = localStorage.getItem(HISTORY_STORAGE_KEY);
+    const existing = raw ? (JSON.parse(raw) as Array<{ id: string; endedAt: string; title: string; messages: MessageType[] }>) : [];
+    const snapshot = {
+      id: `${Date.now()}`,
+      endedAt: new Date().toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }),
+      title,
+      messages,
+    };
+    localStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify([snapshot, ...existing].slice(0, 20)));
+  };
 
   useEffect(() => {
     const moveTimer = setTimeout(() => {
@@ -36,23 +69,30 @@ export function ChatScreen() {
   }, []);
 
   useEffect(() => {
-    const timer = setInterval(() => {
-      setTimeRemaining(prev => {
-        if (prev === 301) setReminder("5 minutes remaining");
-        else if (prev === 61) setReminder("1 minute remaining");
-        else if (prev === 31) setReminder("30 seconds remaining");
+    if (unlockLevel >= 4) {
+      return;
+    }
 
-        if (prev <= 0) {
-          clearInterval(timer);
-          navigate(`${APP_ROUTES.rating}?unlockLevel=${unlockLevel}`);
-          return 0;
-        }
-        return prev - 1;
-      });
+    const timer = setInterval(() => {
+      const endMs = Number(localStorage.getItem(timerStorageKey) || 0);
+      const remaining = Math.max(0, Math.ceil((endMs - Date.now()) / 1000));
+
+      if (remaining === 300) setReminder('5 minutes remaining');
+      else if (remaining === 60) setReminder('1 minute remaining');
+      else if (remaining === 30) setReminder('30 seconds remaining');
+
+      setTimeRemaining(remaining);
+
+      if (remaining <= 0) {
+        clearInterval(timer);
+        localStorage.removeItem(timerStorageKey);
+        saveConversationSnapshot('Conversation ended by timer');
+        navigate(`${APP_ROUTES.rating}?unlockLevel=${unlockLevel}`);
+      }
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [navigate, unlockLevel]);
+  }, [navigate, unlockLevel, timerStorageKey]);
 
   useEffect(() => {
     if (reminder) {
@@ -76,7 +116,7 @@ export function ChatScreen() {
     if (!inputValue.trim()) return;
 
     const now = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
-    setMessages([...messages, { text: inputValue, sender: 'me', timestamp: now }]);
+    setMessages((prev) => [...prev, { text: inputValue, sender: 'me', timestamp: now }]);
     setInputValue('');
 
     setTimeout(() => {
@@ -93,16 +133,25 @@ export function ChatScreen() {
   };
 
   const startVoiceCall = () => {
-    if (unlockLevel < 1) return;
+    if (!voiceUnlocked) return;
     navigate(`${APP_ROUTES.voiceCall}?unlockLevel=${unlockLevel}`);
   };
 
   const startVideoCall = () => {
-    if (unlockLevel < 2) return;
+    if (!videoUnlocked) return;
     navigate(`${APP_ROUTES.videoCall}?unlockLevel=${unlockLevel}`);
   };
 
-  const handleOptOut = () => {
+  const handleBackToHistory = () => {
+    saveConversationSnapshot('Conversation viewed from back navigation');
+    navigate(APP_ROUTES.conversationHistory);
+  };
+
+  const handleEndConversation = () => {
+    if (unlockLevel < 4) {
+      localStorage.removeItem(timerStorageKey);
+    }
+    saveConversationSnapshot('Conversation ended by user');
     navigate(`${APP_ROUTES.rating}?optedOut=true&unlockLevel=${unlockLevel}`);
   };
 
@@ -134,8 +183,9 @@ export function ChatScreen() {
       <div className="border-b border-neutral-200 px-6 py-4">
         <div className="max-w-3xl mx-auto flex items-center justify-between">
           <button
-            onClick={() => setShowOptOut(true)}
+            onClick={handleBackToHistory}
             className="flex items-center gap-2 text-neutral-600 hover:text-black"
+            aria-label="Back to conversation history"
           >
             <ArrowLeft size={20} />
           </button>
@@ -145,12 +195,22 @@ export function ChatScreen() {
             <span className="text-sm">{formatTime(timeRemaining)}</span>
           </div>
 
-          <button
-            onClick={() => setShowOptOut(true)}
-            className="text-neutral-600 hover:text-black"
-          >
-            <X size={20} />
-          </button>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setShowReportModal(true)}
+              className="text-neutral-600 hover:text-black"
+              aria-label="Report conversation"
+            >
+              <Flag size={20} />
+            </button>
+            <button
+              onClick={() => setShowEndConfirmation(true)}
+              className="text-neutral-600 hover:text-black"
+              aria-label="End conversation"
+            >
+              <X size={20} />
+            </button>
+          </div>
         </div>
       </div>
 
@@ -206,27 +266,39 @@ export function ChatScreen() {
 
       <div className="border-t border-neutral-200 px-6 py-4">
         <div className="max-w-3xl mx-auto">
-          {!showOptOut && (unlockLevel >= 1 || unlockLevel >= 2) && (
-            <div className="flex gap-2 mb-3 justify-center">
-              {unlockLevel >= 1 && (
-                <button
-                  onClick={startVoiceCall}
-                  className="px-6 py-3 rounded-full border-2 border-black hover:bg-neutral-50 transition-colors flex items-center gap-2"
-                >
-                  <Phone size={18} />
-                  Voice Call
-                </button>
-              )}
-              {unlockLevel >= 2 && (
-                <button
-                  onClick={startVideoCall}
-                  className="flex items-center gap-2 rounded-full bg-[#D4A574] px-6 py-3 text-white transition-opacity hover:opacity-90"
-                >
-                  <Video size={18} />
-                  Video Call
-                </button>
-              )}
-            </div>
+          <div className="mb-3 grid gap-2 sm:grid-cols-2">
+            <button
+              onClick={startVoiceCall}
+              disabled={!voiceUnlocked}
+              className={[
+                'flex items-center justify-center gap-2 rounded-full border px-4 py-3 transition-colors',
+                voiceUnlocked
+                  ? 'border-black text-black hover:bg-neutral-50'
+                  : 'cursor-not-allowed border-neutral-300 text-neutral-500',
+              ].join(' ')}
+            >
+              <Phone size={18} />
+              {voiceUnlocked ? 'Start Voice Call' : 'Voice Locked'}
+            </button>
+            <button
+              onClick={startVideoCall}
+              disabled={!videoUnlocked}
+              className={[
+                'flex items-center justify-center gap-2 rounded-full px-4 py-3 transition-colors',
+                videoUnlocked
+                  ? 'bg-[#D4A574] text-white hover:opacity-90'
+                  : 'cursor-not-allowed border border-neutral-300 bg-neutral-100 text-neutral-500',
+              ].join(' ')}
+            >
+              <Video size={18} />
+              {videoUnlocked ? 'Start Video Call' : 'Video Locked'}
+            </button>
+          </div>
+
+          {(!voiceUnlocked || !videoUnlocked) && (
+            <p className="mb-3 text-center text-xs text-neutral-500">
+              Unlock voice after a successful text chat, then unlock video after a successful voice call.
+            </p>
           )}
 
           <div className="flex gap-3">
@@ -249,30 +321,45 @@ export function ChatScreen() {
         </div>
       </div>
 
-      {showOptOut && (
+      {showEndConfirmation && (
         <div className="fixed inset-0 z-[70] bg-black/50 flex items-center justify-center px-6">
           <div className="bg-white rounded-3xl p-8 max-w-md w-full">
             <h2 className="text-2xl mb-4">End Conversation?</h2>
             <p className="text-neutral-600 mb-6">
-              Opting out will result in a negative rating and affect future matches.
+              This ends the current chat and sends your response to matching.
             </p>
             <div className="flex flex-col gap-3">
               <button
-                onClick={handleOptOut}
+                onClick={handleEndConversation}
                 className="bg-[#4A3B32] text-white py-3 px-6 rounded-full hover:bg-[#322822] transition-colors"
               >
                 Yes, End Now
               </button>
               <button
-                onClick={() => setShowOptOut(false)}
+                onClick={() => setShowEndConfirmation(false)}
                 className="border-2 border-neutral-300 py-3 px-6 rounded-full hover:bg-neutral-50 transition-colors"
               >
                 Continue Chatting
+              </button>
+              <button
+                onClick={() => {
+                  setShowEndConfirmation(false);
+                  setShowReportModal(true);
+                }}
+                className="text-sm text-neutral-600 underline underline-offset-4"
+              >
+                Report instead
               </button>
             </div>
           </div>
         </div>
       )}
+
+      <ReportModal
+        isOpen={showReportModal}
+        sourceLabel="During conversation"
+        onClose={() => setShowReportModal(false)}
+      />
     </div>
   );
 }
