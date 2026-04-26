@@ -8,6 +8,10 @@ from app.models.message import MessageCreate, MessageResponse
 
 router = APIRouter(prefix="/api/matches", tags=["messages"])
 
+# In-memory typing status: {(match_id, user_id): timestamp}
+_typing_status: dict[tuple[str, str], float] = {}
+TYPING_TIMEOUT_SECONDS = 5
+
 
 def _verify_match_member(match_id: str, user_id: str) -> dict:
     """Return the match row if user_id is a participant, else raise 403."""
@@ -76,3 +80,23 @@ async def send_message(
         sender="me",
         timestamp=msg["sent_at"],
     )
+
+
+@router.post("/{match_id}/typing")
+async def send_typing(match_id: str, user: dict = Depends(get_current_user)):
+    """Signal that the current user is typing."""
+    _verify_match_member(match_id, user["id"])
+    import time
+    _typing_status[(match_id, user["id"])] = time.time()
+    return {"ok": True}
+
+
+@router.get("/{match_id}/typing")
+async def get_typing(match_id: str, user: dict = Depends(get_current_user)):
+    """Check if the other user is currently typing."""
+    import time
+    match = _verify_match_member(match_id, user["id"])
+    partner_id = match["user_b"] if match["user_a"] == user["id"] else match["user_a"]
+    last_typed = _typing_status.get((match_id, partner_id), 0)
+    is_typing = (time.time() - last_typed) < TYPING_TIMEOUT_SECONDS
+    return {"is_typing": is_typing}
