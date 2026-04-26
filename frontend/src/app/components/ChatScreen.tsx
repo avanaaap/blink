@@ -4,7 +4,7 @@ import { ArrowLeft, Send, X, Clock, Phone, Video, Flag } from 'lucide-react';
 import { UnlockProgressBar } from './UnlockProgressBar';
 import { APP_ROUTES } from '../../lib/routes';
 import { ReportModal } from '../../components/ReportModal';
-import { getConversation, sendConversationMessage } from '../../lib/api/chat-api';
+import { getConversation, sendConversationMessage, sendTypingSignal, getTypingStatus } from '../../lib/api/chat-api';
 
 const starterQuestions = [
   "What's something you're really passionate about right now?",
@@ -47,6 +47,9 @@ export function ChatScreen() {
   const [showUnlockProgress, setShowUnlockProgress] = useState(true);
   const [reminder, setReminder] = useState<string | null>(null);
   const [showReportModal, setShowReportModal] = useState(false);
+  const [partnerTyping, setPartnerTyping] = useState(false);
+  const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const typingPollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const voiceUnlocked = unlockLevel >= 1;
@@ -134,6 +137,29 @@ export function ChatScreen() {
       if (pollRef.current) clearInterval(pollRef.current);
     };
   }, [loadMessages]);
+
+  // Poll for partner typing status
+  useEffect(() => {
+    if (!matchId) return;
+    const poll = async () => {
+      const typing = await getTypingStatus(matchId);
+      setPartnerTyping(typing);
+    };
+    typingPollRef.current = setInterval(poll, 2000);
+    return () => {
+      if (typingPollRef.current) clearInterval(typingPollRef.current);
+    };
+  }, [matchId]);
+
+  // Send typing signal on input change (debounced)
+  const handleInputChange = (value: string) => {
+    setInputValue(value);
+    if (!matchId || !value.trim()) return;
+    if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+    typingTimeoutRef.current = setTimeout(() => {
+      void sendTypingSignal(matchId);
+    }, 300);
+  };
 
   const sendMessage = async () => {
     if (!inputValue.trim() || !matchId) return;
@@ -277,6 +303,17 @@ export function ChatScreen() {
               </div>
             </div>
           ))}
+          {partnerTyping && (
+            <div className="flex mb-4 justify-start">
+              <div className="px-4 py-3 rounded-2xl bg-[#D4A574]/15">
+                <div className="flex gap-1 items-center">
+                  <span className="w-2 h-2 bg-[#4A3B32]/50 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                  <span className="w-2 h-2 bg-[#4A3B32]/50 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                  <span className="w-2 h-2 bg-[#4A3B32]/50 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                </div>
+              </div>
+            </div>
+          )}
           <div ref={messagesEndRef} />
         </div>
       </div>
@@ -322,7 +359,7 @@ export function ChatScreen() {
             <input
               type="text"
               value={inputValue}
-              onChange={(e) => setInputValue(e.target.value)}
+              onChange={(e) => handleInputChange(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && sendMessage()}
               placeholder="Type your message..."
               className="flex-1 px-4 py-3 border border-neutral-300 rounded-full focus:outline-none focus:border-[#4A3B32]"
