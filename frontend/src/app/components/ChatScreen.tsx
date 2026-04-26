@@ -4,7 +4,7 @@ import { ArrowLeft, Send, X, Clock, Phone, Video, Flag } from 'lucide-react';
 import { UnlockProgressBar } from './UnlockProgressBar';
 import { APP_ROUTES } from '../../lib/routes';
 import { ReportModal } from '../../components/ReportModal';
-import { getConversation, sendConversationMessage } from '../../lib/api/chat-api';
+import { getConversation, sendConversationMessage, sendTypingSignal, getTypingStatus } from '../../lib/api/chat-api';
 
 const starterQuestions = [
   "What's something you're really passionate about right now?",
@@ -47,6 +47,9 @@ export function ChatScreen() {
   const [showUnlockProgress, setShowUnlockProgress] = useState(true);
   const [reminder, setReminder] = useState<string | null>(null);
   const [showReportModal, setShowReportModal] = useState(false);
+  const [partnerTyping, setPartnerTyping] = useState(false);
+  const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const typingPollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const voiceUnlocked = unlockLevel >= 1;
@@ -135,6 +138,29 @@ export function ChatScreen() {
     };
   }, [loadMessages]);
 
+  // Poll for partner typing status
+  useEffect(() => {
+    if (!matchId) return;
+    const poll = async () => {
+      const typing = await getTypingStatus(matchId);
+      setPartnerTyping(typing);
+    };
+    typingPollRef.current = setInterval(poll, 2000);
+    return () => {
+      if (typingPollRef.current) clearInterval(typingPollRef.current);
+    };
+  }, [matchId]);
+
+  // Send typing signal on input change (debounced)
+  const handleInputChange = (value: string) => {
+    setInputValue(value);
+    if (!matchId || !value.trim()) return;
+    if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+    typingTimeoutRef.current = setTimeout(() => {
+      void sendTypingSignal(matchId);
+    }, 300);
+  };
+
   const sendMessage = async () => {
     if (!inputValue.trim() || !matchId) return;
 
@@ -173,7 +199,7 @@ export function ChatScreen() {
   };
 
   return (
-    <div className="h-screen bg-white flex flex-col relative overflow-hidden">
+    <div className="h-screen bg-gradient-to-b from-[#faf7f3] to-white flex flex-col relative overflow-hidden">
       {timerState !== 'top' && (
         <div className={`absolute inset-0 z-50 transition-opacity duration-500 ${timerState === 'moving' ? 'bg-transparent pointer-events-none' : 'bg-white/90'}`}>
           <div 
@@ -239,7 +265,7 @@ export function ChatScreen() {
         )}
 
         {messages.length === 0 && (
-          <div className="bg-neutral-50 rounded-2xl p-6 border border-neutral-200">
+          <div className="bg-gradient-to-br from-[#faf7f3] to-white rounded-2xl p-6 border border-[#D4A574]/20 shadow-sm">
             <h3 className="text-lg mb-4">Conversation Starters</h3>
             <div className="flex flex-col gap-2">
               {starterQuestions.map((question, idx) => (
@@ -267,8 +293,8 @@ export function ChatScreen() {
                 <div
                   className={`px-4 py-3 rounded-2xl ${
                     message.sender === 'me'
-                      ? 'bg-[#4A3B32] text-white'
-                      : 'bg-[#D4A574]/15 text-[#4A3B32]'
+                      ? 'bg-gradient-to-br from-[#4A3B32] to-[#322822] text-white shadow-sm'
+                      : 'bg-gradient-to-br from-[#D4A574]/15 to-[#E8C9A0]/10 text-[#4A3B32]'
                   }`}
                 >
                   <span>{message.text}</span>
@@ -277,6 +303,17 @@ export function ChatScreen() {
               </div>
             </div>
           ))}
+          {partnerTyping && (
+            <div className="flex mb-4 justify-start">
+              <div className="px-4 py-3 rounded-2xl bg-[#D4A574]/15">
+                <div className="flex gap-1 items-center">
+                  <span className="w-2 h-2 bg-[#4A3B32]/50 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                  <span className="w-2 h-2 bg-[#4A3B32]/50 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                  <span className="w-2 h-2 bg-[#4A3B32]/50 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                </div>
+              </div>
+            </div>
+          )}
           <div ref={messagesEndRef} />
         </div>
       </div>
@@ -322,7 +359,7 @@ export function ChatScreen() {
             <input
               type="text"
               value={inputValue}
-              onChange={(e) => setInputValue(e.target.value)}
+              onChange={(e) => handleInputChange(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && sendMessage()}
               placeholder="Type your message..."
               className="flex-1 px-4 py-3 border border-neutral-300 rounded-full focus:outline-none focus:border-[#4A3B32]"
@@ -330,7 +367,7 @@ export function ChatScreen() {
             <button
               onClick={sendMessage}
               disabled={!inputValue.trim()}
-              className="bg-[#4A3B32] text-white p-3 rounded-full hover:bg-[#322822] transition-colors disabled:bg-neutral-300"
+              className="bg-gradient-to-br from-[#4A3B32] to-[#322822] text-white p-3 rounded-full hover:from-[#322822] hover:to-[#2a1f18] transition-all disabled:bg-neutral-300 disabled:from-neutral-300 disabled:to-neutral-300 shadow-sm"
             >
               <Send size={20} />
             </button>
