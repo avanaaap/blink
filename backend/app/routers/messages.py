@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends, HTTPException
 
@@ -8,8 +8,6 @@ from app.models.message import MessageCreate, MessageResponse
 
 router = APIRouter(prefix="/api/matches", tags=["messages"])
 
-# In-memory typing status: {(match_id, user_id): timestamp}
-_typing_status: dict[tuple[str, str], float] = {}
 TYPING_TIMEOUT_SECONDS = 5
 
 
@@ -84,19 +82,30 @@ async def send_message(
 
 @router.post("/{match_id}/typing")
 async def send_typing(match_id: str, user: dict = Depends(get_current_user)):
-    """Signal that the current user is typing."""
+    """Signal that the current user is typing (persisted to DB)."""
     _verify_match_member(match_id, user["id"])
-    import time
-    _typing_status[(match_id, user["id"])] = time.time()
+    sb = get_supabase()
+    now = datetime.now(timezone.utc).isoformat()
+    sb.table("typing_status").upsert(
+        {"match_id": match_id, "user_id": user["id"], "last_typed_at": now},
+        on_conflict="match_id,user_id",
+    ).execute()
     return {"ok": True}
 
 
 @router.get("/{match_id}/typing")
 async def get_typing(match_id: str, user: dict = Depends(get_current_user)):
-    """Check if the other user is currently typing."""
-    import time
+    """Check if the other user is currently typing (reads from DB)."""
     match = _verify_match_member(match_id, user["id"])
+    sb = get_supabase()
     partner_id = match["user_b"] if match["user_a"] == user["id"] else match["user_a"]
-    last_typed = _typing_status.get((match_id, partner_id), 0)
-    is_typing = (time.time() - last_typed) < TYPING_TIMEOUT_SECONDS
-    return {"is_typing": is_typing}
+    cutoff = (datetime.now(timezone.utc) - timedelta(seconds=TYPING_TIMEOUT_SECONDS)).isoformat()
+    result = (
+        sb.table("typing_status")
+        .select("last_typed_at")
+        .eq("match_id", match_id)
+        .eq("user_id", partner_id)
+        .gte("last_typed_at", cutoff)
+        .execute()
+    )
+    return {"is_typing": bool(result.data)}
