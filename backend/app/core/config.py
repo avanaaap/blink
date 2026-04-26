@@ -21,5 +21,9 @@ class Settings(BaseSettings):
     jwt_algorithm: str = "HS256"
     jwt_expire_hours: int = 720  # 30 days
 
+    # Agora RTC (voice & video calling)
+    agora_app_id: str = ""
+    agora_app_certificate: str = ""
+
 
 settings = Settings()
