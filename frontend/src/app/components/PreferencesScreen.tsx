@@ -3,20 +3,13 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { BlinkLogo } from './BlinkLogo';
 import { ChevronRight, ChevronLeft } from 'lucide-react';
 import { APP_ROUTES } from '../../lib/routes';
-<<<<<<< HEAD
-import { defaultUserProfilePreferences, loadUserProfilePreferences, saveUserProfilePreferences } from '../../lib/profile-storage';
+import { updateMyProfile } from '../../lib/api/profile-api';
+import type { Profile } from '../../lib/types';
 
 export function PreferencesScreen() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const isEditMode = searchParams.get('mode') === 'edit';
-  const [step, setStep] = useState(1);
-  const [preferences, setPreferences] = useState(() => (isEditMode ? loadUserProfilePreferences() : defaultUserProfilePreferences));
-=======
-import { updateMyProfile } from '../../lib/api/profile-api';
-
-export function PreferencesScreen() {
-  const navigate = useNavigate();
   const [step, setStep] = useState(0);
   const [saving, setSaving] = useState(false);
   const [preferences, setPreferences] = useState({
@@ -46,7 +39,6 @@ export function PreferencesScreen() {
     // Photos
     photos: [] as { url: string; caption: string }[],
   });
->>>>>>> 21670ad95767a681d2c5a761ecfb5fb1cf98d3ea
 
   const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -76,27 +68,23 @@ export function PreferencesScreen() {
     });
   };
 
-<<<<<<< HEAD
-  const handleSaveAndExit = () => {
-    saveUserProfilePreferences(preferences);
-=======
-  const buildProfilePayload = () => ({
+  const buildProfilePayload = (): Partial<Profile> => ({
     name: preferences.name,
     age: Number(preferences.age),
-    interested_in: preferences.interestedIn,
-    relationship_type: preferences.relationshipType || undefined,
+    interested_in: preferences.interestedIn as Profile['interested_in'],
+    relationship_type: (preferences.relationshipType || undefined) as Profile['relationship_type'],
     age_range_min: preferences.ageRange[0],
     age_range_max: preferences.ageRange[1],
-    interests: preferences.interests,
-    relationship_meaning: preferences.relationshipMeaning,
-    time_with_partner: preferences.timeWithPartner,
-    conflict_style: preferences.conflictStyle || undefined,
-    island_scenario: preferences.islandScenario || undefined,
-    musical_instrument: preferences.musicalInstrument || undefined,
-    sexuality: preferences.sexuality || undefined,
-    spending_habits: preferences.spendingHabits || undefined,
-    has_debt: preferences.hasDebt || undefined,
-    wants_kids: preferences.wantsKids || undefined,
+    interests: preferences.interests as Profile['interests'],
+    relationship_meaning: preferences.relationshipMeaning as Profile['relationship_meaning'],
+    time_with_partner: preferences.timeWithPartner as Profile['time_with_partner'],
+    conflict_style: (preferences.conflictStyle || undefined) as Profile['conflict_style'],
+    island_scenario: (preferences.islandScenario || undefined) as Profile['island_scenario'],
+    musical_instrument: (preferences.musicalInstrument || undefined) as Profile['musical_instrument'],
+    sexuality: (preferences.sexuality || undefined) as Profile['sexuality'],
+    spending_habits: (preferences.spendingHabits || undefined) as Profile['spending_habits'],
+    has_debt: (preferences.hasDebt || undefined) as Profile['has_debt'],
+    wants_kids: (preferences.wantsKids || undefined) as Profile['wants_kids'],
   });
 
   const handleSaveAndExit = async () => {
@@ -106,7 +94,6 @@ export function PreferencesScreen() {
     } catch (e) {
       console.error('Failed to save profile:', e);
     }
->>>>>>> 21670ad95767a681d2c5a761ecfb5fb1cf98d3ea
     navigate(APP_ROUTES.match);
   };
 
@@ -146,11 +133,6 @@ export function PreferencesScreen() {
     }
   };
 
-<<<<<<< HEAD
-  const handleComplete = () => {
-    saveUserProfilePreferences(preferences);
-    navigate(`${APP_ROUTES.myProfile}?fromSetup=true`);
-=======
   const handleComplete = async () => {
     setSaving(true);
     try {
@@ -159,7 +141,6 @@ export function PreferencesScreen() {
       console.error('Failed to save profile:', e);
     }
     navigate(APP_ROUTES.match);
->>>>>>> 21670ad95767a681d2c5a761ecfb5fb1cf98d3ea
   };
 
   return (
