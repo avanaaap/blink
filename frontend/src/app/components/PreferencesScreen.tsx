@@ -1,10 +1,10 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { BlinkLogo } from './BlinkLogo';
-import { ChevronRight, ChevronLeft } from 'lucide-react';
+import { ChevronRight, ChevronLeft, Loader2 } from 'lucide-react';
 import { APP_ROUTES } from '../../lib/routes';
-import { updateMyProfile } from '../../lib/api/profile-api';
-import { uploadPhoto, deletePhoto } from '../../lib/api/photo-api';
+import { getMyProfile, updateMyProfile } from '../../lib/api/profile-api';
+import { uploadPhoto, deletePhoto, listMyPhotos } from '../../lib/api/photo-api';
 import type { Profile } from '../../lib/types';
 
 export function PreferencesScreen() {
@@ -13,6 +13,7 @@ export function PreferencesScreen() {
   const isEditMode = searchParams.get('mode') === 'edit';
   const [step, setStep] = useState(0);
   const [saving, setSaving] = useState(false);
+  const [loadingProfile, setLoadingProfile] = useState(isEditMode);
   const [preferences, setPreferences] = useState({
     // Profile basics
     firstName: '',
@@ -43,6 +44,49 @@ export function PreferencesScreen() {
     // Photos
     photos: [] as { file?: File; url: string; caption: string; uploaded?: boolean; photoId?: string }[],
   });
+
+  // Load existing profile data in edit mode
+  useEffect(() => {
+    if (!isEditMode) return;
+    let cancelled = false;
+    Promise.all([getMyProfile(), listMyPhotos()])
+      .then(([profile, photos]) => {
+        if (cancelled) return;
+        const nameParts = (profile.name || '').split(' ');
+        const firstName = nameParts[0] || '';
+        const lastName = nameParts.slice(1).join(' ') || '';
+        setPreferences({
+          firstName,
+          lastName,
+          age: profile.age || '',
+          gender: profile.gender || '',
+          interestedIn: profile.interested_in || [],
+          relationshipType: profile.relationship_type || '',
+          ageRange: [profile.age_range_min ?? 22, profile.age_range_max ?? 35],
+          interests: profile.interests || [],
+          relationshipMeaning: profile.relationship_meaning || [],
+          timeWithPartner: profile.time_with_partner || [],
+          conflictStyle: profile.conflict_style || '',
+          islandScenario: profile.island_scenario || '',
+          musicalInstrument: profile.musical_instrument || '',
+          sexuality: profile.sexuality || '',
+          spendingHabits: profile.spending_habits || '',
+          hasDebt: profile.has_debt || '',
+          wantsKids: profile.wants_kids || '',
+          photos: photos.map(p => ({
+            url: p.url,
+            caption: p.caption || '',
+            uploaded: true,
+            photoId: p.id,
+          })),
+        });
+      })
+      .catch((err) => console.error('Failed to load profile:', err))
+      .finally(() => {
+        if (!cancelled) setLoadingProfile(false);
+      });
+    return () => { cancelled = true; };
+  }, [isEditMode]);
 
   const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -170,6 +214,14 @@ export function PreferencesScreen() {
     }
     navigate(APP_ROUTES.match);
   };
+
+  if (loadingProfile) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-white">
+        <Loader2 size={32} className="animate-spin text-neutral-400" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-white">

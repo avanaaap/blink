@@ -91,6 +91,20 @@ async def upload_photo(
 
     if not row.data:
         raise HTTPException(status_code=500, detail="Failed to save photo record")
+
+    # Set as profile picture if it's the first photo (sort_order 0)
+    # or if the user doesn't have a profile picture yet
+    if sort_order == 0:
+        sb.table("profiles").update(
+            {"profile_picture_url": public_url}
+        ).eq("id", user["id"]).execute()
+    else:
+        current_profile = sb.table("profiles").select("profile_picture_url").eq("id", user["id"]).execute()
+        if current_profile.data and not current_profile.data[0].get("profile_picture_url"):
+            sb.table("profiles").update(
+                {"profile_picture_url": public_url}
+            ).eq("id", user["id"]).execute()
+
     return row.data[0]
 
 
