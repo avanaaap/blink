@@ -98,13 +98,20 @@ class KidsPreference(str, Enum):
 
 
 class MatchStatus(str, Enum):
+    PENDING = "pending"
     ACTIVE = "active"
-    COMPLETED = "completed"
-    EXPIRED = "expired"
-    DECLINED = "declined"
+    UNMATCHED = "unmatched"
+    CONNECTED = "connected"
 
 
 class InteractionType(str, Enum):
     CHAT = "chat"
     VOICE = "voice"
     VIDEO = "video"
+    POST_CONNECTION = "post_connection"
+
+
+class StageDecision(str, Enum):
+    MOVE_FORWARD = "move_forward"
+    NOT_SURE = "not_sure"
+    DONT_MOVE_FORWARD = "dont_move_forward"
