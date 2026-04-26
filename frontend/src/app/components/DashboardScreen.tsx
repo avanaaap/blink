@@ -1,10 +1,10 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { BlinkLogo } from './BlinkLogo';
-import { Settings, LogOut, MessageCircle, Phone, Video, Flag, PhoneOff, Loader2, User, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Settings, LogOut, MessageCircle, Phone, Video, Flag, PhoneOff, Loader2, User, ChevronLeft, ChevronRight, X } from 'lucide-react';
 import { APP_ROUTES } from '../../lib/routes';
 import { Button } from '../../components/Button';
-import { getTodayMatch, getAllMatches, getPartnerReveal } from '../../lib/api/match-api';
+import { getTodayMatch, getAllMatches, getPartnerReveal, declineMatch } from '../../lib/api/match-api';
 import { createCallInvite, getPendingInvite, respondToInvite, checkInviteStatus } from '../../lib/api/call-api';
 import type { CallInvite } from '../../lib/api/call-api';
 import { ReportModal } from '../../components/ReportModal';
@@ -170,6 +170,18 @@ export function DashboardScreen() {
     }
     setIncomingInvite(null);
   }, [incomingInvite]);
+
+  const handleDeclineMatch = useCallback(async () => {
+    if (!match) return;
+    try {
+      await declineMatch(match.id);
+      setMatch(null);
+      setPartnerReveal(null);
+      setRevealPhotoIndex(0);
+    } catch (e) {
+      console.error('Failed to decline match:', e);
+    }
+  }, [match]);
 
   const revealPhotos = partnerReveal?.photos ?? [];
 
@@ -364,6 +376,14 @@ export function DashboardScreen() {
                   View Full Profile
                 </button>
               )}
+
+              <button
+                onClick={handleDeclineMatch}
+                className="flex items-center justify-center gap-2 rounded-lg border border-red-300 px-3 py-2 text-red-500 hover:bg-red-50 transition-colors text-sm"
+              >
+                <X size={15} />
+                Decline Match
+              </button>
             </div>
 
             {/* Past Matches */}

@@ -50,3 +50,9 @@ export type PartnerReveal = {
 export async function getPartnerReveal(matchId: string): Promise<PartnerReveal> {
   return apiRequest<PartnerReveal>(`/api/matches/${matchId}/reveal`);
 }
+
+export async function declineMatch(matchId: string): Promise<void> {
+  await apiRequest<{ detail: string }>(`/api/matches/${matchId}/decline`, {
+    method: "POST",
+  });
+}
