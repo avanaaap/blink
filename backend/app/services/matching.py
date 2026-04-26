@@ -28,7 +28,7 @@ import logging
 from datetime import datetime, timezone
 from typing import Any
 
-import google.generativeai as genai
+from google import genai
 
 from app.core.config import settings
 from app.core.supabase import get_supabase
@@ -39,9 +39,12 @@ logger = logging.getLogger(__name__)
 # Gemini setup
 # ---------------------------------------------------------------------------
 
-def _get_gemini_model() -> genai.GenerativeModel:
-    genai.configure(api_key=settings.gemini_api_key)
-    return genai.GenerativeModel("gemini-2.0-flash")
+def _get_gemini_client() -> genai.Client | None:
+    if not settings.gemini_api_key:
+        return None
+    return genai.Client(api_key=settings.gemini_api_key)
+
+GEMINI_MODEL = "gemini-2.0-flash"
 
 # ---------------------------------------------------------------------------
 # Scoring weights — deterministic portion (max 40 pts)
@@ -343,7 +346,7 @@ Respond ONLY with valid JSON (no markdown, no code fences):
 
 
 async def _gemini_score_pair(
-    model: genai.GenerativeModel,
+    client: genai.Client | None,
     a: dict[str, Any],
     b: dict[str, Any],
 ) -> tuple[int, list[str]]:
@@ -358,10 +361,15 @@ async def _gemini_score_pair(
     if not has_text_a and not has_text_b:
         return 30, []  # neutral midpoint
 
+    if client is None:
+        return _fallback_text_score(a, b)
+
     prompt = _build_gemini_prompt(a, b)
 
     try:
-        response = model.generate_content(prompt)
+        response = await client.aio.models.generate_content(
+            model=GEMINI_MODEL, contents=prompt
+        )
         text = response.text.strip()
         # Strip markdown code fences if present
         if text.startswith("```"):
@@ -406,7 +414,7 @@ def _fallback_text_score(
 # ===================================================================== #
 
 async def _compute_final_score(
-    model: genai.GenerativeModel,
+    client: genai.Client | None,
     a: dict[str, Any],
     b: dict[str, Any],
 ) -> tuple[int, list[str]]:
@@ -416,7 +424,7 @@ async def _compute_final_score(
     det_max = _DETERMINISTIC_MAX + GENDER_PREFERENCE_SCORE  # 60
     det_scaled = (det_raw / det_max) * DETERMINISTIC_WEIGHT if det_max else 0
 
-    ai_score, themes = await _gemini_score_pair(model, a, b)
+    ai_score, themes = await _gemini_score_pair(client, a, b)
 
     final = min(round(det_scaled + ai_score), 100)
     return final, themes
@@ -455,7 +463,7 @@ async def run_daily_matching() -> list[dict[str, Any]]:
         logger.info("Not enough eligible profiles for matching.")
         return []
 
-    model = _get_gemini_model()
+    client = _get_gemini_client()
 
     # Score every eligible pair
     scored_pairs: list[tuple[str, str, int, list[str]]] = []
@@ -470,7 +478,7 @@ async def run_daily_matching() -> list[dict[str, Any]]:
                 continue
             seen.add(pair_key)
 
-            final_score, shared_themes = await _compute_final_score(model, a, b)
+            final_score, shared_themes = await _compute_final_score(client, a, b)
             user_a, user_b = _order_pair(a["id"], b["id"])
             scored_pairs.append((user_a, user_b, final_score, shared_themes))
 
@@ -658,7 +666,7 @@ async def create_match_for_user(sb: Any, user_id: str) -> dict[str, Any] | None:
     already_matched = _fetch_todays_matched_users(sb, today)
     historical_pairs = _fetch_historical_pairs(sb)
 
-    model = _get_gemini_model()
+    client = _get_gemini_client()
 
     best_candidate = None
     best_score = -1
@@ -668,7 +676,7 @@ async def create_match_for_user(sb: Any, user_id: str) -> dict[str, Any] | None:
         if not _is_eligible_pair(user, candidate, blocks, already_matched, historical_pairs):
             continue
 
-        final_score, shared_themes = await _compute_final_score(model, user, candidate)
+        final_score, shared_themes = await _compute_final_score(client, user, candidate)
 
         if final_score > best_score:
             best_candidate = candidate
