@@ -1,10 +1,11 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, Send, X, Clock, Phone, Video, Flag } from 'lucide-react';
 import { UnlockProgressBar } from './UnlockProgressBar';
 import { APP_ROUTES } from '../../lib/routes';
 import { starterQuestions } from '../../lib/mock-data';
 import { ReportModal } from '../../components/ReportModal';
+import { getConversation, sendConversationMessage } from '../../lib/api/chat-api';
 
 type MessageType = {
   text: string;
@@ -18,8 +19,10 @@ const TIMER_STORAGE_KEY_PREFIX = 'blink.chatTimerEndMs';
 export function ChatScreen() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const matchId = searchParams.get('matchId') || '';
   const unlockLevel = parseInt(searchParams.get('unlockLevel') || '0');
   const [messages, setMessages] = useState<MessageType[]>([]);
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const [inputValue, setInputValue] = useState('');
   const timerStorageKey = `${TIMER_STORAGE_KEY_PREFIX}.${unlockLevel}`;
   const [timeRemaining, setTimeRemaining] = useState(() => {
@@ -87,7 +90,7 @@ export function ChatScreen() {
         clearInterval(timer);
         localStorage.removeItem(timerStorageKey);
         saveConversationSnapshot('Conversation ended by timer');
-        navigate(`${APP_ROUTES.rating}?unlockLevel=${unlockLevel}`);
+        navigate(`${APP_ROUTES.rating}?matchId=${matchId}&unlockLevel=${unlockLevel}`);
       }
     }, 1000);
 
@@ -112,24 +115,48 @@ export function ChatScreen() {
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
-  const sendMessage = () => {
-    if (!inputValue.trim()) return;
+  const loadMessages = useCallback(async () => {
+    if (!matchId) return;
+    try {
+      const msgs = await getConversation(matchId);
+      setMessages(
+        msgs.map((m) => ({
+          text: m.text,
+          sender: m.sender,
+          timestamp: new Date(m.timestamp).toLocaleTimeString('en-US', {
+            hour: '2-digit',
+            minute: '2-digit',
+          }),
+        })),
+      );
+    } catch (e) {
+      console.error('Failed to load messages:', e);
+    }
+  }, [matchId]);
 
+  // Load messages on mount and poll every 3 seconds for new ones
+  useEffect(() => {
+    void loadMessages();
+    pollRef.current = setInterval(() => void loadMessages(), 3000);
+    return () => {
+      if (pollRef.current) clearInterval(pollRef.current);
+    };
+  }, [loadMessages]);
+
+  const sendMessage = async () => {
+    if (!inputValue.trim() || !matchId) return;
+
+    const text = inputValue.trim();
     const now = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
-    setMessages((prev) => [...prev, { text: inputValue, sender: 'me', timestamp: now }]);
+    // Optimistic update
+    setMessages((prev) => [...prev, { text, sender: 'me', timestamp: now }]);
     setInputValue('');
 
-    setTimeout(() => {
-      const responses = [
-        "That's really interesting! Tell me more about that.",
-        "I love that perspective! I've never thought of it that way.",
-        "Absolutely! I can relate to that so much.",
-        "That sounds amazing! What drew you to that?",
-      ];
-      const randomResponse = responses[Math.floor(Math.random() * responses.length)];
-      const responseTime = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
-      setMessages(prev => [...prev, { text: randomResponse, sender: 'them', timestamp: responseTime }]);
-    }, 2000);
+    try {
+      await sendConversationMessage(matchId, text);
+    } catch (e) {
+      console.error('Failed to send message:', e);
+    }
   };
 
   const startVoiceCall = () => {
@@ -152,7 +179,7 @@ export function ChatScreen() {
       localStorage.removeItem(timerStorageKey);
     }
     saveConversationSnapshot('Conversation ended by user');
-    navigate(`${APP_ROUTES.rating}?optedOut=true&unlockLevel=${unlockLevel}`);
+    navigate(`${APP_ROUTES.rating}?matchId=${matchId}&optedOut=true&unlockLevel=${unlockLevel}`);
   };
 
   return (

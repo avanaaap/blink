@@ -57,6 +57,7 @@ async def get_today_match(user: dict = Depends(get_current_user)):
         .select("*")
         .eq("match_date", today)
         .or_(f"user_a.eq.{uid},user_b.eq.{uid}")
+        .neq("status", "unmatched")
         .limit(1)
         .execute()
     )
@@ -64,7 +65,7 @@ async def get_today_match(user: dict = Depends(get_current_user)):
     if result.data:
         return _build_match_detail(sb, result.data[0], uid)
 
-    # No match yet — run the matching algorithm on demand
+    # No active match — run the matching algorithm on demand
     new_match = create_match_for_user(sb, uid)
     if not new_match:
         return None
