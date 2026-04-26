@@ -1,13 +1,23 @@
+import { useEffect } from 'react';
 import { BlinkLogo } from './BlinkLogo';
 import { useNavigate } from 'react-router-dom';
 import { APP_ROUTES } from '../../lib/routes';
 import { Button } from '../../components/Button';
 import { useWorldIdVerify } from '../../lib/hooks/useWorldIdVerify';
+import { getAccessToken } from '../../lib/api/client';
 import { QRCodeSVG } from 'qrcode.react';
 
 export function WelcomeScreen() {
   const navigate = useNavigate();
   const { status, error, connectUrl, verify } = useWorldIdVerify();
+
+  // If user already has a valid token, skip verification
+  useEffect(() => {
+    const token = getAccessToken();
+    if (token) {
+      navigate(APP_ROUTES.match, { replace: true });
+    }
+  }, [navigate]);
 
   const handleVerify = async () => {
     const result = await verify();
