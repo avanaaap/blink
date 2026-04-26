@@ -41,14 +41,21 @@ export function loadUserProfilePreferences(): UserProfilePreferences {
   }
 
   try {
-    const parsed = JSON.parse(raw) as Partial<UserProfilePreferences>;
+    const parsed = JSON.parse(raw) as Record<string, unknown>;
+    // Migrate old array-format fields to comma-separated strings
+    const asString = (v: unknown): string =>
+      Array.isArray(v) ? v.join(', ') : typeof v === 'string' ? v : '';
     return {
       ...defaultUserProfilePreferences,
-      ...parsed,
-      ageRange: Array.isArray(parsed.ageRange) && parsed.ageRange.length === 2
-        ? [Number(parsed.ageRange[0]), Number(parsed.ageRange[1])]
+      ...(parsed as Partial<UserProfilePreferences>),
+      interests: asString(parsed.interests),
+      relationshipMeaning: asString(parsed.relationshipMeaning),
+      timeWithPartner: asString(parsed.timeWithPartner),
+      conflictStyle: asString(parsed.conflictStyle),
+      ageRange: Array.isArray(parsed.ageRange) && (parsed.ageRange as unknown[]).length === 2
+        ? [Number((parsed.ageRange as unknown[])[0]), Number((parsed.ageRange as unknown[])[1])]
         : defaultUserProfilePreferences.ageRange,
-      photos: Array.isArray(parsed.photos) ? parsed.photos : [],
+      photos: Array.isArray(parsed.photos) ? parsed.photos as UserProfilePreferences['photos'] : [],
     };
   } catch {
     return defaultUserProfilePreferences;
