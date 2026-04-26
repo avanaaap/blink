@@ -158,11 +158,11 @@ export function RevealScreen() {
                   )}
                 </div>
 
-                {partner.bio && (
-                  <div className="rounded-2xl border border-neutral-200 p-4">
-                    <p className="text-sm text-neutral-700">{partner.bio}</p>
-                  </div>
-                )}
+                <div className="rounded-2xl border border-neutral-200 p-4">
+                  <p className="text-sm text-neutral-700">
+                    {partner.bio || <span className="text-neutral-400 italic">No bio yet</span>}
+                  </p>
+                </div>
 
                 {partner.interests && (
                   <div className="rounded-2xl border border-neutral-200 p-4">

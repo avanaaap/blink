@@ -277,9 +277,9 @@ export function DashboardScreen() {
                     </div>
                   </div>
 
-                  {match.partner_bio && (
-                    <p className="text-sm text-neutral-600 mb-3 line-clamp-2">{match.partner_bio}</p>
-                  )}
+                  <p className="text-sm text-neutral-600 mb-3 line-clamp-2">
+                    {match.partner_bio || <span className="text-neutral-400 italic">No bio yet</span>}
+                  </p>
 
                   {/* Action buttons */}
                   <div className="flex gap-2 mb-3">
