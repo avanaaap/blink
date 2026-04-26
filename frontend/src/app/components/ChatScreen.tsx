@@ -13,6 +13,7 @@ type MessageType = {
 };
 
 const HISTORY_STORAGE_KEY = 'blink.conversationHistory';
+const TIMER_STORAGE_KEY_PREFIX = 'blink.chatTimerEndMs';
 
 export function ChatScreen() {
   const navigate = useNavigate();
@@ -20,7 +21,20 @@ export function ChatScreen() {
   const unlockLevel = parseInt(searchParams.get('unlockLevel') || '0');
   const [messages, setMessages] = useState<MessageType[]>([]);
   const [inputValue, setInputValue] = useState('');
-  const [timeRemaining, setTimeRemaining] = useState(unlockLevel >= 4 ? Infinity : 3600);
+  const timerStorageKey = `${TIMER_STORAGE_KEY_PREFIX}.${unlockLevel}`;
+  const [timeRemaining, setTimeRemaining] = useState(() => {
+    if (unlockLevel >= 4) return Infinity;
+
+    const existingEndMs = localStorage.getItem(timerStorageKey);
+    if (existingEndMs) {
+      const remaining = Math.max(0, Math.ceil((Number(existingEndMs) - Date.now()) / 1000));
+      return remaining;
+    }
+
+    const endMs = Date.now() + 3600 * 1000;
+    localStorage.setItem(timerStorageKey, String(endMs));
+    return 3600;
+  });
   const [timerState, setTimerState] = useState<'center' | 'moving' | 'top'>('center');
   const [showEndConfirmation, setShowEndConfirmation] = useState(false);
   const [showUnlockProgress, setShowUnlockProgress] = useState(true);
@@ -55,24 +69,30 @@ export function ChatScreen() {
   }, []);
 
   useEffect(() => {
-    const timer = setInterval(() => {
-      setTimeRemaining(prev => {
-        if (prev === 301) setReminder("5 minutes remaining");
-        else if (prev === 61) setReminder("1 minute remaining");
-        else if (prev === 31) setReminder("30 seconds remaining");
+    if (unlockLevel >= 4) {
+      return;
+    }
 
-        if (prev <= 0) {
-          clearInterval(timer);
-          saveConversationSnapshot('Conversation ended by timer');
-          navigate(`${APP_ROUTES.rating}?unlockLevel=${unlockLevel}`);
-          return 0;
-        }
-        return prev - 1;
-      });
+    const timer = setInterval(() => {
+      const endMs = Number(localStorage.getItem(timerStorageKey) || 0);
+      const remaining = Math.max(0, Math.ceil((endMs - Date.now()) / 1000));
+
+      if (remaining === 300) setReminder('5 minutes remaining');
+      else if (remaining === 60) setReminder('1 minute remaining');
+      else if (remaining === 30) setReminder('30 seconds remaining');
+
+      setTimeRemaining(remaining);
+
+      if (remaining <= 0) {
+        clearInterval(timer);
+        localStorage.removeItem(timerStorageKey);
+        saveConversationSnapshot('Conversation ended by timer');
+        navigate(`${APP_ROUTES.rating}?unlockLevel=${unlockLevel}`);
+      }
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [navigate, unlockLevel]);
+  }, [navigate, unlockLevel, timerStorageKey]);
 
   useEffect(() => {
     if (reminder) {
@@ -128,6 +148,9 @@ export function ChatScreen() {
   };
 
   const handleEndConversation = () => {
+    if (unlockLevel < 4) {
+      localStorage.removeItem(timerStorageKey);
+    }
     saveConversationSnapshot('Conversation ended by user');
     navigate(`${APP_ROUTES.rating}?optedOut=true&unlockLevel=${unlockLevel}`);
   };
