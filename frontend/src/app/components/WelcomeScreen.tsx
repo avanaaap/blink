@@ -5,13 +5,10 @@ import { APP_ROUTES } from '../../lib/routes';
 import { Button } from '../../components/Button';
 import { useWorldIdVerify } from '../../lib/hooks/useWorldIdVerify';
 import { getAccessToken } from '../../lib/api/client';
-import { QRCodeSVG } from 'qrcode.react';
-import { useIsMobile } from '../../lib/hooks/useIsMobile';
 
 export function WelcomeScreen() {
   const navigate = useNavigate();
   const { status, error, connectUrl, verify } = useWorldIdVerify();
-  const isMobile = useIsMobile();
   const [showAuthPanel, setShowAuthPanel] = useState(false);
 
   // If user already has a valid token, skip verification
@@ -83,36 +80,15 @@ export function WelcomeScreen() {
           <div className="mt-8 flex w-full flex-col items-center gap-3">
             {connectUrl ? (
               <div className="flex flex-col items-center gap-4">
-                {isMobile ? (
-                  <>
-                    <a
-                      href={connectUrl}
-                      className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-[#4A3B32] px-8 py-4 text-white transition-colors hover:bg-[#322822]"
-                    >
-                      Open in World App
-                    </a>
-                    <p className="text-sm text-neutral-500 animate-pulse">
-                      Waiting for verification...
-                    </p>
-                  </>
-                ) : (
-                  <>
-                    <p className="text-neutral-700 font-medium">
-                      Scan with World App
-                    </p>
-                    <a href={connectUrl} className="bg-white p-4 rounded-2xl shadow-lg border border-neutral-200 block">
-                      <QRCodeSVG
-                        value={connectUrl}
-                        size={240}
-                        level="M"
-                        includeMargin
-                      />
-                    </a>
-                    <p className="text-sm text-neutral-500 animate-pulse">
-                      Waiting for verification...
-                    </p>
-                  </>
-                )}
+                <a
+                  href={connectUrl}
+                  className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-[#4A3B32] px-8 py-4 text-white transition-colors hover:bg-[#322822]"
+                >
+                  Open in World App
+                </a>
+                <p className="text-sm text-neutral-500 animate-pulse">
+                  Waiting for verification...
+                </p>
               </div>
             ) : (
               <Button
