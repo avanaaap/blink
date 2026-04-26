@@ -74,7 +74,7 @@ export function RatingScreen() {
           </p>
           <button
             onClick={() => setShowReportModal(true)}
-            className="mt-3 text-sm text-neutral-600 underline underline-offset-4 hover:text-black"
+            className="mt-3 text-sm text-neutral-600 underline underline-offset-4 hover:text-[#4A3B32]"
           >
             Report this conversation
           </button>
@@ -116,7 +116,7 @@ export function RatingScreen() {
                   ? 'How did you feel meeting face-to-face?'
                   : 'What did you enjoy? What could be better?'
               }
-              className="w-full px-4 py-3 border border-neutral-300 rounded-lg focus:outline-none focus:border-black resize-none"
+              className="w-full px-4 py-3 border border-neutral-300 rounded-lg focus:outline-none focus:border-[#4A3B32] resize-none"
               rows={4}
             />
           </div>

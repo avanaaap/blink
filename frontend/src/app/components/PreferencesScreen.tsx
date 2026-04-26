@@ -184,22 +184,24 @@ export function PreferencesScreen() {
         </div>
 
         <div className="flex flex-col items-center gap-4 mb-8">
-          <BlinkLogo size={60} className="text-black" />
+          <BlinkLogo size={60} className="text-[#4A3B32]" />
           <h1 className="text-3xl">{isEditMode ? 'Edit Your Profile' : 'Build Your Profile'}</h1>
-          <div className="flex gap-2">
-            {[0, 1, 2, 3, 4, 5, 6].map(s => (
-              <div
-                key={s}
-                className={`h-2 w-10 rounded-full transition-colors ${
-                  s <= step ? 'bg-[#4A3B32]' : 'bg-neutral-200'
-                }`}
-              />
-            ))}
-          </div>
+          {!isEditMode && (
+            <div className="flex gap-2">
+              {[0, 1, 2, 3, 4, 5, 6].map(s => (
+                <div
+                  key={s}
+                  className={`h-2 w-10 rounded-full transition-colors ${
+                    s <= step ? 'bg-[#4A3B32]' : 'bg-neutral-200'
+                  }`}
+                />
+              ))}
+            </div>
+          )}
         </div>
 
         <div className="flex flex-col gap-8">
-          {step === 0 && (
+          {(isEditMode || step === 0) && (
             <>
               <div>
                 <h2 className="text-xl mb-2">What's your name?</h2>
@@ -253,7 +255,7 @@ export function PreferencesScreen() {
             </>
           )}
 
-          {step === 1 && (
+          {(isEditMode || step === 1) && (
             <>
               <div>
                 <h2 className="text-xl mb-2">I'm interested in</h2>
@@ -302,34 +304,55 @@ export function PreferencesScreen() {
             </>
           )}
 
-          {step === 2 && (
+          {(isEditMode || step === 2) && (
             <>
               <div>
                 <h2 className="text-xl mb-2">Age Range</h2>
                 <p className="text-sm text-neutral-500 mb-4">Who would you like to meet?</p>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-xs text-neutral-500 mb-2">Minimum</label>
-                    <input
-                      type="number"
-                      min="18"
-                      max="80"
-                      value={preferences.ageRange[0]}
-                      onChange={(e) => setPreferences({ ...preferences, ageRange: [parseInt(e.target.value), preferences.ageRange[1]] })}
-                      className="w-full px-4 py-3 border-2 border-neutral-300 rounded-lg focus:outline-none focus:border-[#4A3B32]"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs text-neutral-500 mb-2">Maximum</label>
-                    <input
-                      type="number"
-                      min="18"
-                      max="80"
-                      value={preferences.ageRange[1]}
-                      onChange={(e) => setPreferences({ ...preferences, ageRange: [preferences.ageRange[0], parseInt(e.target.value)] })}
-                      className="w-full px-4 py-3 border-2 border-neutral-300 rounded-lg focus:outline-none focus:border-[#4A3B32]"
-                    />
-                  </div>
+                <div className="flex items-center justify-between mb-3">
+                  <span className="text-lg font-medium text-[#4A3B32]">{preferences.ageRange[0]}</span>
+                  <span className="text-sm text-neutral-400">to</span>
+                  <span className="text-lg font-medium text-[#4A3B32]">{preferences.ageRange[1]}</span>
+                </div>
+                <div className="relative h-8 flex items-center">
+                  <div className="absolute w-full h-1.5 bg-neutral-200 rounded-full" />
+                  <div
+                    className="absolute h-1.5 bg-[#D4A574] rounded-full"
+                    style={{
+                      left: `${((preferences.ageRange[0] - 18) / (80 - 18)) * 100}%`,
+                      right: `${100 - ((preferences.ageRange[1] - 18) / (80 - 18)) * 100}%`,
+                    }}
+                  />
+                  <input
+                    type="range"
+                    min="18"
+                    max="80"
+                    value={preferences.ageRange[0]}
+                    onChange={(e) => {
+                      const val = parseInt(e.target.value);
+                      if (val < preferences.ageRange[1]) {
+                        setPreferences({ ...preferences, ageRange: [val, preferences.ageRange[1]] });
+                      }
+                    }}
+                    className="absolute w-full appearance-none bg-transparent pointer-events-none [&::-webkit-slider-thumb]:pointer-events-auto [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-6 [&::-webkit-slider-thumb]:h-6 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-[#4A3B32] [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-white [&::-webkit-slider-thumb]:shadow-md [&::-webkit-slider-thumb]:cursor-pointer [&::-moz-range-thumb]:pointer-events-auto [&::-moz-range-thumb]:appearance-none [&::-moz-range-thumb]:w-6 [&::-moz-range-thumb]:h-6 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-[#4A3B32] [&::-moz-range-thumb]:border-2 [&::-moz-range-thumb]:border-white [&::-moz-range-thumb]:shadow-md [&::-moz-range-thumb]:cursor-pointer"
+                  />
+                  <input
+                    type="range"
+                    min="18"
+                    max="80"
+                    value={preferences.ageRange[1]}
+                    onChange={(e) => {
+                      const val = parseInt(e.target.value);
+                      if (val > preferences.ageRange[0]) {
+                        setPreferences({ ...preferences, ageRange: [preferences.ageRange[0], val] });
+                      }
+                    }}
+                    className="absolute w-full appearance-none bg-transparent pointer-events-none [&::-webkit-slider-thumb]:pointer-events-auto [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-6 [&::-webkit-slider-thumb]:h-6 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-[#4A3B32] [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-white [&::-webkit-slider-thumb]:shadow-md [&::-webkit-slider-thumb]:cursor-pointer [&::-moz-range-thumb]:pointer-events-auto [&::-moz-range-thumb]:appearance-none [&::-moz-range-thumb]:w-6 [&::-moz-range-thumb]:h-6 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-[#4A3B32] [&::-moz-range-thumb]:border-2 [&::-moz-range-thumb]:border-white [&::-moz-range-thumb]:shadow-md [&::-moz-range-thumb]:cursor-pointer"
+                  />
+                </div>
+                <div className="flex justify-between mt-1">
+                  <span className="text-xs text-neutral-400">18</span>
+                  <span className="text-xs text-neutral-400">80</span>
                 </div>
               </div>
 
@@ -355,7 +378,7 @@ export function PreferencesScreen() {
             </>
           )}
 
-          {step === 3 && (
+          {(isEditMode || step === 3) && (
             <>
               <div>
                 <h2 className="text-xl mb-2">What does being in a relationship mean to you?</h2>
@@ -399,7 +422,7 @@ export function PreferencesScreen() {
             </>
           )}
 
-          {step === 4 && (
+          {(isEditMode || step === 4) && (
             <>
               <div>
                 <h2 className="text-xl mb-2">During a disagreement with your partner, are you more likely to:</h2>
@@ -460,7 +483,7 @@ export function PreferencesScreen() {
             </>
           )}
 
-          {step === 5 && (
+          {(isEditMode || step === 5) && (
             <>
               <div>
                 <h2 className="text-xl mb-2">Sexuality</h2>
@@ -540,7 +563,7 @@ export function PreferencesScreen() {
             </>
           )}
 
-          {step === 6 && (
+          {(isEditMode || step === 6) && (
             <>
               <div>
                 <h2 className="text-xl mb-2">Profile Pictures (Optional)</h2>
@@ -553,7 +576,7 @@ export function PreferencesScreen() {
                         <img src={photo.url} alt={`Upload ${idx + 1}`} className="w-full h-full object-cover" />
                         <button 
                           onClick={() => handleRemovePhoto(idx)}
-                          className="absolute top-1 right-1 bg-black/50 text-white w-6 h-6 flex items-center justify-center rounded-full hover:bg-black"
+                          className="absolute top-1 right-1 bg-[#4A3B32]/50 text-white w-6 h-6 flex items-center justify-center rounded-full hover:bg-[#4A3B32]"
                         >
                           &times;
                         </button>
@@ -573,7 +596,7 @@ export function PreferencesScreen() {
                   ))}
 
                   {preferences.photos.length < 5 && (
-                    <label className="w-full py-8 border-2 border-dashed border-neutral-300 rounded-xl flex flex-col items-center justify-center text-neutral-500 hover:border-black hover:text-black cursor-pointer transition-colors bg-neutral-50">
+                    <label className="w-full py-8 border-2 border-dashed border-neutral-300 rounded-xl flex flex-col items-center justify-center text-neutral-500 hover:border-[#4A3B32] hover:text-[#4A3B32] cursor-pointer transition-colors bg-neutral-50">
                       <span className="text-2xl mb-2">+</span>
                       <span>Upload Photo ({preferences.photos.length}/5)</span>
                       <input 
@@ -589,36 +612,46 @@ export function PreferencesScreen() {
             </>
           )}
 
-          <div className="flex gap-3 mt-4">
-            {step > 1 && (
-              <button
-                onClick={() => setStep(step - 1)}
-                className="flex items-center gap-2 py-4 px-6 border-2 border-neutral-300 rounded-full hover:bg-neutral-50 transition-colors"
-              >
-                <ChevronLeft size={20} />
-                Back
-              </button>
-            )}
+          {isEditMode ? (
+            <button
+              onClick={handleComplete}
+              disabled={saving}
+              className="w-full bg-[#4A3B32] text-white py-4 px-8 rounded-full hover:bg-[#322822] transition-colors disabled:bg-neutral-300 disabled:cursor-not-allowed mt-4"
+            >
+              {saving ? 'Saving...' : 'Save Changes'}
+            </button>
+          ) : (
+            <div className="flex gap-3 mt-4">
+              {step > 1 && (
+                <button
+                  onClick={() => setStep(step - 1)}
+                  className="flex items-center gap-2 py-4 px-6 border-2 border-neutral-300 rounded-full hover:bg-neutral-50 transition-colors"
+                >
+                  <ChevronLeft size={20} />
+                  Back
+                </button>
+              )}
 
-            {step < 6 ? (
-              <button
-                onClick={() => setStep(step + 1)}
-                disabled={!canProceed()}
-                className="flex-1 flex items-center justify-center gap-2 bg-[#4A3B32] text-white py-4 px-8 rounded-full hover:bg-[#322822] transition-colors disabled:bg-neutral-300 disabled:cursor-not-allowed"
-              >
-                Continue
-                <ChevronRight size={20} />
-              </button>
-            ) : (
-              <button
-                onClick={handleComplete}
-                disabled={saving}
-                className="flex-1 bg-[#4A3B32] text-white py-4 px-8 rounded-full hover:bg-[#322822] transition-colors disabled:bg-neutral-300 disabled:cursor-not-allowed"
-              >
-                {saving ? 'Saving...' : 'Complete Setup'}
-              </button>
-            )}
-          </div>
+              {step < 6 ? (
+                <button
+                  onClick={() => setStep(step + 1)}
+                  disabled={!canProceed()}
+                  className="flex-1 flex items-center justify-center gap-2 bg-[#4A3B32] text-white py-4 px-8 rounded-full hover:bg-[#322822] transition-colors disabled:bg-neutral-300 disabled:cursor-not-allowed"
+                >
+                  Continue
+                  <ChevronRight size={20} />
+                </button>
+              ) : (
+                <button
+                  onClick={handleComplete}
+                  disabled={saving}
+                  className="flex-1 bg-[#4A3B32] text-white py-4 px-8 rounded-full hover:bg-[#322822] transition-colors disabled:bg-neutral-300 disabled:cursor-not-allowed"
+                >
+                  {saving ? 'Saving...' : 'Complete Setup'}
+                </button>
+              )}
+            </div>
+          )}
         </div>
       </div>
     </div>

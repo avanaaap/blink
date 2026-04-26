@@ -23,6 +23,15 @@ export async function getTodayMatch(): Promise<TodayMatchResult> {
   }
 }
 
+export async function getAllMatches(): Promise<MatchDetail[]> {
+  if (!hasApiBaseUrl) return [];
+  try {
+    return await apiRequest<MatchDetail[]>("/api/matches/all");
+  } catch {
+    return [];
+  }
+}
+
 export async function updateUnlockLevel(matchId: string, unlockLevel: number): Promise<MatchDetail> {
   return apiRequest<MatchDetail>(`/api/matches/${matchId}/unlock`, {
     method: "PATCH",

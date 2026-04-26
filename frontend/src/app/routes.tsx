@@ -13,7 +13,6 @@ import { ProfilePage } from "../pages/ProfilePage";
 import { MyProfilePage } from "../pages/MyProfilePage";
 import { ConnectionPage } from "../pages/ConnectionPage";
 import { SettingsPage } from "../pages/SettingsPage";
-import { ConversationHistoryPage } from "../pages/ConversationHistoryPage";
 
 export const router = createBrowserRouter([
   { path: APP_ROUTES.landing, Component: LandingPage },
@@ -23,7 +22,6 @@ export const router = createBrowserRouter([
   { path: APP_ROUTES.match, Component: MatchPage },
   { path: "/dashboard", Component: MatchPage },
   { path: APP_ROUTES.chat, Component: ChatPage },
-  { path: APP_ROUTES.conversationHistory, Component: ConversationHistoryPage },
   { path: APP_ROUTES.voiceCall, Component: VoiceCallPage },
   { path: APP_ROUTES.videoCall, Component: VideoCallPage },
   { path: APP_ROUTES.rating, Component: RatingPage },

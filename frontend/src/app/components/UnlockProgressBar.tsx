@@ -37,7 +37,7 @@ export function UnlockProgressBar({ unlockLevel }: UnlockProgressBarProps) {
               </div>
               <span
                 className={`text-xs text-center ${
-                  isUnlocked ? 'text-black' : isNext ? 'text-neutral-700' : 'text-neutral-400'
+                  isUnlocked ? 'text-[#4A3B32]' : isNext ? 'text-[#4A3B32]/70' : 'text-neutral-400'
                 }`}
               >
                 {milestone.label}

@@ -105,7 +105,7 @@ export function MyProfileScreen() {
       <div className="mx-auto max-w-2xl">
         <button
           onClick={() => navigate(APP_ROUTES.match)}
-          className="mb-6 flex items-center gap-2 text-neutral-600 hover:text-black"
+          className="mb-6 flex items-center gap-2 text-[#4A3B32]/70 hover:text-[#4A3B32]"
         >
           <ArrowLeft size={20} />
           Back
@@ -132,7 +132,7 @@ export function MyProfileScreen() {
                   className="h-full w-full object-cover"
                 />
 
-                <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-black/70 px-4 py-3 text-white">
+                <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-[#4A3B32]/70 px-4 py-3 text-white">
                   <p className="text-sm">{activePhoto.caption || 'Profile photo'}</p>
                 </div>
 
@@ -140,18 +140,18 @@ export function MyProfileScreen() {
                   <>
                     <button
                       onClick={prevPhoto}
-                      className="absolute left-3 top-1/2 -translate-y-1/2 rounded-full bg-black/45 p-2 text-white hover:bg-black/60"
+                      className="absolute left-3 top-1/2 -translate-y-1/2 rounded-full bg-[#4A3B32]/50 p-2 text-white hover:bg-[#4A3B32]/70"
                     >
                       <ChevronLeft size={18} />
                     </button>
                     <button
                       onClick={nextPhoto}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full bg-black/45 p-2 text-white hover:bg-black/60"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full bg-[#4A3B32]/50 p-2 text-white hover:bg-[#4A3B32]/70"
                     >
                       <ChevronRight size={18} />
                     </button>
 
-                    <div className="absolute left-1/2 top-3 flex -translate-x-1/2 gap-1.5 rounded-full bg-black/35 px-3 py-1">
+                    <div className="absolute left-1/2 top-3 flex -translate-x-1/2 gap-1.5 rounded-full bg-[#4A3B32]/40 px-3 py-1">
                       {photos.map((_, index) => (
                         <div
                           key={`photo-dot-${index}`}

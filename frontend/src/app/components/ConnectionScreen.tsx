@@ -102,15 +102,15 @@ export function ConnectionScreen() {
         <div className="mb-6 flex items-center justify-between">
           <button
             onClick={() => navigate(APP_ROUTES.match)}
-            className="flex items-center gap-2 text-neutral-600 hover:text-black"
+            className="flex items-center gap-2 text-[#4A3B32]/70 hover:text-[#4A3B32]"
           >
             <ArrowLeft size={20} />
             Back
           </button>
-          <BlinkLogo size={44} className="text-black" />
+          <BlinkLogo size={44} className="text-[#4A3B32]" />
           <button
             onClick={() => navigate(APP_ROUTES.match)}
-            className="text-neutral-600 hover:text-black"
+            className="text-[#4A3B32]/70 hover:text-[#4A3B32]"
           >
             <X size={20} />
           </button>
@@ -180,7 +180,7 @@ export function ConnectionScreen() {
 
             {messages.map((msg, i) => (
               <div key={i} className={`flex flex-col max-w-[75%] ${msg.sender === 'me' ? 'self-end items-end' : 'self-start items-start'}`}>
-                <div className={`px-4 py-3 rounded-2xl ${msg.sender === 'me' ? 'bg-[#4A3B32] text-white' : 'bg-neutral-100 text-black'}`}>
+                <div className={`px-4 py-3 rounded-2xl ${msg.sender === 'me' ? 'bg-[#4A3B32] text-white' : 'bg-[#D4A574]/15 text-[#4A3B32]'}`}>
                   {msg.text}
                 </div>
                 <span className="text-[10px] text-neutral-400 px-1 mt-1">{msg.timestamp}</span>
@@ -197,7 +197,7 @@ export function ConnectionScreen() {
                 onChange={(e) => setInputValue(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && sendMessage()}
                 placeholder="Type a message..."
-                className="flex-1 px-4 py-3 border border-neutral-300 rounded-full focus:outline-none focus:border-black text-sm"
+                className="flex-1 px-4 py-3 border border-neutral-300 rounded-full focus:outline-none focus:border-[#4A3B32] text-sm"
               />
               <button
                 onClick={sendMessage}

@@ -58,7 +58,7 @@ export function WelcomeScreen() {
           ].join(' ')}
         >
           <div className="eye-logo-intro eye-logo-shell">
-            <BlinkLogo size={120} className="eye-logo-blink text-black" />
+            <BlinkLogo size={120} className="eye-logo-blink text-[#4A3B32]" />
             <div className="eye-lid-overlay" />
           </div>
         </div>
