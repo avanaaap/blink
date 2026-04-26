@@ -1,23 +1,23 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { BlinkLogo } from './BlinkLogo';
-import { Settings, LogOut, MessageCircle, Phone, Video, Flag } from 'lucide-react';
+import { Settings, LogOut, MessageCircle, Phone, Video, Flag, Loader2 } from 'lucide-react';
 import { APP_ROUTES } from '../../lib/routes';
-import { matchProfile } from '../../lib/mock-data';
 import { Button } from '../../components/Button';
 import { getTodayMatch } from '../../lib/api/match-api';
+import { clearAccessToken } from '../../lib/api/client';
 import { ReportModal } from '../../components/ReportModal';
+import type { MatchDetail } from '../../lib/types';
 
 export function DashboardScreen() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const initialUnlockLevel = parseInt(searchParams.get('unlockLevel') || '0');
-  const [hasMatch, setHasMatch] = useState(true);
   const [isPaused, setIsPaused] = useState(false);
   const [unlockLevel] = useState(initialUnlockLevel);
-  const [match, setMatch] = useState(matchProfile);
+  const [match, setMatch] = useState<MatchDetail | null>(null);
   const [isLoadingMatch, setIsLoadingMatch] = useState(true);
-  const [dataSource, setDataSource] = useState<"api" | "mock">("mock");
+  const [error, setError] = useState<string | null>(null);
   const [showReportModal, setShowReportModal] = useState(false);
   const [showVoiceUnlockGlow, setShowVoiceUnlockGlow] = useState(false);
   const [showVideoUnlockGlow, setShowVideoUnlockGlow] = useState(false);
@@ -28,10 +28,14 @@ export function DashboardScreen() {
   useEffect(() => {
     const load = async () => {
       setIsLoadingMatch(true);
-      const result = await getTodayMatch();
-      setMatch(result.data);
-      setDataSource(result.source);
-      setIsLoadingMatch(false);
+      try {
+        const result = await getTodayMatch();
+        setMatch(result);
+      } catch (e) {
+        setError(e instanceof Error ? e.message : 'Failed to load match');
+      } finally {
+        setIsLoadingMatch(false);
+      }
     };
     void load();
   }, []);
@@ -56,7 +60,10 @@ export function DashboardScreen() {
     return () => clearTimeout(timer);
   }, [videoUnlocked]);
 
-  const sharedInterests = match.interests.slice(0, 3);
+  const handleLogout = () => {
+    clearAccessToken();
+    navigate(APP_ROUTES.landing);
+  };
 
   return (
     <div className="min-h-screen bg-white">
@@ -78,7 +85,7 @@ export function DashboardScreen() {
               <Settings size={24} />
             </button>
             <button
-              onClick={() => navigate(APP_ROUTES.landing)}
+              onClick={handleLogout}
               className="p-2 hover:bg-neutral-100 rounded-full transition-colors"
             >
               <LogOut size={24} />
@@ -86,7 +93,17 @@ export function DashboardScreen() {
           </div>
         </div>
 
-        {!isPaused && hasMatch ? (
+        {isLoadingMatch ? (
+          <div className="flex flex-col items-center gap-4 py-16">
+            <Loader2 size={32} className="animate-spin text-neutral-400" />
+            <p className="text-neutral-500">Finding your match...</p>
+          </div>
+        ) : error ? (
+          <div className="flex flex-col items-center gap-4 py-16">
+            <p className="text-red-500">{error}</p>
+            <Button onClick={() => window.location.reload()}>Try Again</Button>
+          </div>
+        ) : !isPaused && match ? (
           <div className="flex flex-col items-center gap-8">
             <div className="text-center">
               <h1 className="text-4xl mb-3">Today's Match</h1>
@@ -100,36 +117,40 @@ export function DashboardScreen() {
                 </div>
 
                 <div className="text-center">
-                  <h2 className="text-2xl mb-2">Today's Match: {match.name}</h2>
-                  <p className="text-neutral-600">Profile hidden until rating threshold</p>
-                  <p className="mt-2 text-xs text-neutral-400">
-                    {isLoadingMatch ? "Loading match..." : `Data source: ${dataSource.toUpperCase()}`}
-                  </p>
+                  <h2 className="text-2xl mb-2">Today's Match: {match.partner_name}</h2>
+                  {match.partner_age && (
+                    <p className="text-neutral-600">{match.partner_age} years old</p>
+                  )}
+                  <p className="text-neutral-500 text-sm mt-1">Profile hidden until rating threshold</p>
                 </div>
 
-                <div className="flex flex-wrap gap-2 justify-center">
-                  {sharedInterests.map(interest => (
-                    <span
-                      key={interest}
-                      className="px-4 py-2 bg-white border border-neutral-300 rounded-full text-sm"
-                    >
-                      {interest}
-                    </span>
-                  ))}
-                </div>
+                {match.shared_interests.length > 0 && (
+                  <div className="flex flex-wrap gap-2 justify-center">
+                    {match.shared_interests.map(interest => (
+                      <span
+                        key={interest}
+                        className="px-4 py-2 bg-white border border-neutral-300 rounded-full text-sm"
+                      >
+                        {interest}
+                      </span>
+                    ))}
+                  </div>
+                )}
 
-                <div className="w-full bg-white rounded-xl p-4 border border-neutral-300">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm text-neutral-600">Compatibility</span>
-                    <span className="text-sm">{match.compatibilityScore}%</span>
+                {match.compatibility_score != null && (
+                  <div className="w-full bg-white rounded-xl p-4 border border-neutral-300">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-sm text-neutral-600">Compatibility</span>
+                      <span className="text-sm">{match.compatibility_score}%</span>
+                    </div>
+                    <div className="w-full bg-neutral-200 rounded-full h-2">
+                      <div
+                        className="bg-[#4A3B32] h-2 rounded-full transition-all"
+                        style={{ width: `${match.compatibility_score}%` }}
+                      />
+                    </div>
                   </div>
-                  <div className="w-full bg-neutral-200 rounded-full h-2">
-                    <div
-                      className="bg-[#4A3B32] h-2 rounded-full transition-all"
-                      style={{ width: `${match.compatibilityScore}%` }}
-                    />
-                  </div>
-                </div>
+                )}
               </div>
             </div>
 
@@ -178,33 +199,30 @@ export function DashboardScreen() {
                   </button>
                 </div>
               </div>
-              <Button
-                onClick={() => setHasMatch(false)}
-                variant="outline"
-                fullWidth
-              >
-                Keep Exploring
-              </Button>
             </div>
           </div>
         ) : (
           <div className="flex flex-col items-center gap-8 py-16">
             <div className="text-center">
               <h1 className="text-4xl mb-3">
-                {isPaused ? 'Matches Paused' : 'No More Matches'}
+                {isPaused ? 'Matches Paused' : 'No Matches Yet'}
               </h1>
               <p className="text-neutral-600">
                 {isPaused
                   ? 'Resume anytime to start receiving matches'
-                  : 'You have chosen to keep exploring. Check back tomorrow for a new connection.'}
+                  : 'No compatible users found right now. Check back soon — new people join every day!'}
               </p>
             </div>
 
-            <Button
-              onClick={() => setIsPaused(!isPaused)}
-            >
-              {isPaused ? 'Resume Matches' : 'Pause Matches'}
-            </Button>
+            {isPaused ? (
+              <Button onClick={() => setIsPaused(false)}>
+                Resume Matches
+              </Button>
+            ) : (
+              <Button onClick={() => window.location.reload()}>
+                Refresh
+              </Button>
+            )}
           </div>
         )}
       </div>
