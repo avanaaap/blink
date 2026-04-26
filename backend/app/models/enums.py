@@ -1,6 +1,13 @@
 from enum import Enum
 
 
+class GenderIdentity(str, Enum):
+    MAN = "Man"
+    WOMAN = "Woman"
+    NON_BINARY = "Non-binary"
+    PREFER_NOT_TO_SAY = "Prefer not to say"
+
+
 class GenderOption(str, Enum):
     WOMEN = "Women"
     MEN = "Men"

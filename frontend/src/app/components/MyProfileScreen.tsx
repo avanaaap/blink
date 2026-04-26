@@ -73,6 +73,7 @@ export function MyProfileScreen() {
     {
       title: 'Basics',
       fields: [
+        { label: 'I Identify As', value: profile.gender || 'Not set' },
         { label: 'Interested In', value: profile.interested_in?.join(', ') || 'Not set' },
         { label: 'Relationship Type', value: profile.relationship_type || 'Not set' },
         { label: 'Age Range', value: `${profile.age_range_min ?? '?'} - ${profile.age_range_max ?? '?'}` },

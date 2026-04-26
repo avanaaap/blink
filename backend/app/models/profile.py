@@ -3,6 +3,7 @@ from pydantic import BaseModel, Field
 from app.models.enums import (
     ConflictStyle,
     DebtStatus,
+    GenderIdentity,
     GenderOption,
     InterestOption,
     IslandScenario,
@@ -24,6 +25,7 @@ class ProfileCreate(BaseModel):
 class ProfileUpdate(BaseModel):
     name: str | None = None
     age: int | None = Field(default=None, ge=18)
+    gender: GenderIdentity | None = None
     sexuality: SexualityOption | None = None
     interested_in: list[GenderOption] | None = None
     relationship_type: RelationshipType | None = None
@@ -46,6 +48,7 @@ class ProfileResponse(BaseModel):
     id: str
     name: str
     age: int
+    gender: GenderIdentity | None = None
     sexuality: SexualityOption | None = None
     interested_in: list[GenderOption] = []
     relationship_type: RelationshipType | None = None

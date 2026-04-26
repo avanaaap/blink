@@ -54,6 +54,15 @@ ISLAND_PARTIAL_SCORE = 1
 INSTRUMENT_MATCH_SCORE = 5
 INSTRUMENT_PARTIAL_SCORE = 1
 
+GENDER_PREFERENCE_SCORE = 15  # bonus when gender matches partner's interested_in
+
+# Maps gender identity → interested_in value the partner should have
+GENDER_TO_INTERESTED_IN: dict[str, str] = {
+    "Man": "Men",
+    "Woman": "Women",
+    "Non-binary": "Non-binary",
+}
+
 # ---------------------------------------------------------------------------
 # Conflict-style modifier matrix (Step 3)
 # Keys are the Postgres enum values stored in ``profiles.conflict_style``.
@@ -136,10 +145,34 @@ def _fetch_historical_pairs(sb: Any) -> set[frozenset[str]]:
 
 # --- pair-level eligibility checks ---
 
-def _are_interested_in_compatible(a: dict[str, Any], b: dict[str, Any]) -> bool:
-    a_set = set(a.get("interested_in") or [])
-    b_set = set(b.get("interested_in") or [])
-    return bool(a_set & b_set)
+def _gender_preference_score(a: dict[str, Any], b: dict[str, Any]) -> int:
+    """Score how well each user's gender matches the other's interested_in.
+
+    Returns 0-GENDER_PREFERENCE_SCORE.  Full points when both users'
+    gender identity is in the other's interested_in list.  Half points
+    when only one direction matches.  Zero when neither matches or
+    data is missing.
+    """
+    a_gender = a.get("gender")
+    b_gender = b.get("gender")
+    a_interested = set(a.get("interested_in") or [])
+    b_interested = set(b.get("interested_in") or [])
+
+    # If either user has no gender or no interested_in, skip (allow match)
+    if not a_gender or not b_gender or not a_interested or not b_interested:
+        return GENDER_PREFERENCE_SCORE  # neutral — don't penalise missing data
+
+    a_maps_to = GENDER_TO_INTERESTED_IN.get(a_gender)
+    b_maps_to = GENDER_TO_INTERESTED_IN.get(b_gender)
+
+    a_wants_b = b_maps_to in a_interested if b_maps_to else False
+    b_wants_a = a_maps_to in b_interested if a_maps_to else False
+
+    if a_wants_b and b_wants_a:
+        return GENDER_PREFERENCE_SCORE
+    if a_wants_b or b_wants_a:
+        return GENDER_PREFERENCE_SCORE // 2
+    return 0
 
 
 def _are_ages_compatible(a: dict[str, Any], b: dict[str, Any]) -> bool:
@@ -185,8 +218,6 @@ def _is_eligible_pair(
     if frozenset({a_id, b_id}) in blocks:
         return False
     if frozenset({a_id, b_id}) in historical_pairs:
-        return False
-    if not _are_interested_in_compatible(a, b):
         return False
     if not _are_ages_compatible(a, b):
         return False
@@ -287,9 +318,13 @@ def _compute_base_score(a: dict[str, Any], b: dict[str, Any]) -> tuple[float, li
     else:
         music_score = 0
 
+    # Gender preference (15 pts max — soft score, not hard filter)
+    gender_score = _gender_preference_score(a, b)
+
     base = (
         interest_score + meaning_score + time_score + spending_score
         + kids_score + rel_score + debt_score + island_score + music_score
+        + gender_score
     )
     return base, shared
 

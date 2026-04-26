@@ -22,6 +22,7 @@ export type Message = {
 };
 
 // Enum-aligned string literal types
+export type GenderIdentity = "Man" | "Woman" | "Non-binary" | "Prefer not to say";
 export type GenderOption = "Women" | "Men" | "Non-binary";
 export type RelationshipType = "Monogamy" | "Polyamory" | "Open to Either";
 export type InterestOption =
@@ -48,6 +49,7 @@ export type Profile = {
   id: string;
   name: string;
   age: number;
+  gender?: GenderIdentity;
   sexuality?: SexualityOption;
   interested_in: GenderOption[];
   relationship_type?: RelationshipType;

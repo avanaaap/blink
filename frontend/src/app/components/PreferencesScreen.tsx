@@ -18,6 +18,8 @@ export function PreferencesScreen() {
     name: '',
     age: '' as string | number,
 
+    gender: '',
+
     // Basic preferences
     interestedIn: [] as string[],
     relationshipType: '',
@@ -93,6 +95,7 @@ export function PreferencesScreen() {
   const buildProfilePayload = (): Partial<Profile> => ({
     name: preferences.name,
     age: Number(preferences.age),
+    gender: (preferences.gender || undefined) as Profile['gender'],
     interested_in: preferences.interestedIn as Profile['interested_in'],
     relationship_type: (preferences.relationshipType || undefined) as Profile['relationship_type'],
     age_range_min: preferences.ageRange[0],
@@ -138,7 +141,7 @@ export function PreferencesScreen() {
   const canProceed = () => {
     switch (step) {
       case 0:
-        return preferences.name.trim().length > 0 && Number(preferences.age) >= 18;
+        return preferences.name.trim().length > 0 && Number(preferences.age) >= 18 && preferences.gender !== '';
       case 1:
         return preferences.interestedIn.length > 0 && preferences.relationshipType;
       case 2:
@@ -218,6 +221,24 @@ export function PreferencesScreen() {
                   placeholder="Age"
                   className="w-full px-4 py-3 border-2 border-neutral-300 rounded-lg focus:outline-none focus:border-black"
                 />
+              </div>
+              <div>
+                <h2 className="text-xl mb-2">I identify as</h2>
+                <div className="grid grid-cols-2 gap-3">
+                  {['Man', 'Woman', 'Non-binary', 'Prefer not to say'].map(option => (
+                    <button
+                      key={option}
+                      onClick={() => setPreferences({ ...preferences, gender: option })}
+                      className={`py-3 px-4 rounded-lg border-2 transition-colors ${
+                        preferences.gender === option
+                          ? 'border-black bg-neutral-50'
+                          : 'border-neutral-300 hover:border-neutral-400'
+                      }`}
+                    >
+                      {option}
+                    </button>
+                  ))}
+                </div>
               </div>
             </>
           )}
