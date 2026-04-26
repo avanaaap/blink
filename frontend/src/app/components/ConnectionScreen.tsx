@@ -1,60 +1,100 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { BlinkLogo } from './BlinkLogo';
-import { ArrowLeft, Send, X, MessageCircle, Phone, Video } from 'lucide-react';
+import { ArrowLeft, Send, X, MessageCircle, Phone, Video, Loader2 } from 'lucide-react';
 import { APP_ROUTES } from '../../lib/routes';
-import { Button } from '../../components/Button';
+import { getTodayMatch } from '../../lib/api/match-api';
+import { getConversation, sendConversationMessage } from '../../lib/api/chat-api';
+import type { MatchDetail } from '../../lib/types';
 
 type MessageType = {
   text: string;
   sender: 'me' | 'them';
-  time: string;
+  timestamp: string;
 };
-
-const HISTORY_STORAGE_KEY = 'blink.connectionTextHistory';
 
 export function ConnectionScreen() {
   const navigate = useNavigate();
-  const [messages, setMessages] = useState<MessageType[]>(() => {
-    const raw = localStorage.getItem(HISTORY_STORAGE_KEY);
-    if (!raw) return [];
-    try {
-      const parsed = JSON.parse(raw) as MessageType[];
-      return Array.isArray(parsed) ? parsed : [];
-    } catch {
-      return [];
-    }
-  });
+  const [searchParams] = useSearchParams();
+  const matchId = searchParams.get('matchId') || '';
+  const [messages, setMessages] = useState<MessageType[]>([]);
   const [inputValue, setInputValue] = useState('');
+  const [match, setMatch] = useState<MatchDetail | null>(null);
+  const [loading, setLoading] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const matchProfile = {
-    name: 'Alex',
-    age: 28,
+  // Load match data
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const result = await getTodayMatch();
+        setMatch(result.data);
+      } catch {
+        // fallback
+      } finally {
+        setLoading(false);
+      }
+    };
+    void load();
+  }, []);
+
+  // Load messages from backend
+  const loadMessages = async () => {
+    if (!matchId) return;
+    try {
+      const msgs = await getConversation(matchId);
+      setMessages(
+        msgs.map((m) => ({
+          text: m.text,
+          sender: m.sender,
+          timestamp: new Date(m.timestamp).toLocaleTimeString('en-US', {
+            hour: '2-digit',
+            minute: '2-digit',
+          }),
+        })),
+      );
+    } catch {
+      // ignore
+    }
   };
+
+  useEffect(() => {
+    void loadMessages();
+    pollRef.current = setInterval(() => void loadMessages(), 3000);
+    return () => {
+      if (pollRef.current) clearInterval(pollRef.current);
+    };
+  }, [matchId]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  useEffect(() => {
-    localStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(messages));
-  }, [messages]);
-
-  const sendMessage = () => {
-    if (!inputValue.trim()) return;
+  const sendMessage = async () => {
+    if (!inputValue.trim() || !matchId) return;
+    const text = inputValue.trim();
     const now = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
-    setMessages([...messages, { text: inputValue, sender: 'me', time: now }]);
+    setMessages((prev) => [...prev, { text, sender: 'me', timestamp: now }]);
     setInputValue('');
-
-    setTimeout(() => {
-      setMessages(prev => [...prev, { 
-        text: "That sounds like a great time. Let's do it!", 
-        sender: 'them', 
-        time: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) 
-      }]);
-    }, 2000);
+    try {
+      await sendConversationMessage(matchId, text);
+    } catch {
+      // ignore
+    }
   };
+
+  const partnerName = match?.partner_name ?? 'Your Match';
+  const partnerAge = match?.partner_age;
+  const resolvedMatchId = matchId || match?.id || '';
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <Loader2 size={32} className="animate-spin text-neutral-400" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-white px-6 py-8">
@@ -77,9 +117,9 @@ export function ConnectionScreen() {
         </div>
 
         <div className="mb-6 text-center">
-          <h1 className="text-4xl mb-3">Text with {matchProfile.name}</h1>
+          <h1 className="text-4xl mb-3">Text with {partnerName}</h1>
           <p className="text-neutral-600 text-lg">
-            You’re connected. Text, call, or video call from the same place with no time limit.
+            You're connected. Text, call, or video call from the same place with no time limit.
           </p>
         </div>
 
@@ -87,7 +127,7 @@ export function ConnectionScreen() {
           <div className="border-b border-neutral-200 bg-neutral-50 px-5 py-4">
             <div className="flex items-center justify-between">
               <div>
-                <h2 className="text-lg">{matchProfile.name}, {matchProfile.age}</h2>
+                <h2 className="text-lg">{partnerName}{partnerAge ? `, ${partnerAge}` : ''}</h2>
                 <p className="text-sm text-neutral-500">Unlimited connection hub</p>
               </div>
               <div className="rounded-full bg-white px-3 py-1 text-xs text-neutral-500 border border-neutral-200">
@@ -106,14 +146,14 @@ export function ConnectionScreen() {
                 Text
               </button>
               <button
-                onClick={() => navigate(`${APP_ROUTES.voiceCall}?unlockLevel=4`)}
+                onClick={() => navigate(`${APP_ROUTES.voiceCall}?matchId=${resolvedMatchId}&unlockLevel=4`)}
                 className="flex items-center justify-center gap-2 rounded-full border border-[#4A3B32] px-4 py-3 text-[#4A3B32] hover:bg-neutral-50"
               >
                 <Phone size={16} />
                 Voice
               </button>
               <button
-                onClick={() => navigate(`${APP_ROUTES.videoCall}?unlockLevel=4`)}
+                onClick={() => navigate(`${APP_ROUTES.videoCall}?matchId=${resolvedMatchId}&unlockLevel=4`)}
                 className="flex items-center justify-center gap-2 rounded-full border border-[#4A3B32] px-4 py-3 text-[#4A3B32] hover:bg-neutral-50"
               >
                 <Video size={16} />
@@ -143,7 +183,7 @@ export function ConnectionScreen() {
                 <div className={`px-4 py-3 rounded-2xl ${msg.sender === 'me' ? 'bg-[#4A3B32] text-white' : 'bg-neutral-100 text-black'}`}>
                   {msg.text}
                 </div>
-                <span className="text-[10px] text-neutral-400 px-1 mt-1">{msg.time}</span>
+                <span className="text-[10px] text-neutral-400 px-1 mt-1">{msg.timestamp}</span>
               </div>
             ))}
             <div ref={messagesEndRef} />

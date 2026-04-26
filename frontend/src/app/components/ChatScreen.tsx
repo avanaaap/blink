@@ -3,9 +3,14 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, Send, X, Clock, Phone, Video, Flag } from 'lucide-react';
 import { UnlockProgressBar } from './UnlockProgressBar';
 import { APP_ROUTES } from '../../lib/routes';
-import { starterQuestions } from '../../lib/mock-data';
 import { ReportModal } from '../../components/ReportModal';
 import { getConversation, sendConversationMessage } from '../../lib/api/chat-api';
+
+const starterQuestions = [
+  "What's something you're really passionate about right now?",
+  "If you could travel anywhere tomorrow, where would you go?",
+  "What's the best thing that happened to you this week?",
+];
 
 type MessageType = {
   text: string;
