@@ -15,14 +15,14 @@ export function UnlockProgressBar({ unlockLevel }: UnlockProgressBarProps) {
   return (
     <div className="bg-white border border-neutral-200 rounded-2xl p-6">
       <h3 className="text-sm text-neutral-600 mb-4">Connection Progress</h3>
-      <div className="flex items-center justify-between gap-2 relative">
+      <div className="grid grid-cols-4 gap-2 relative">
         {milestones.map((milestone, idx) => {
           const Icon = milestone.icon;
           const isUnlocked = unlockLevel >= milestone.level;
           const isNext = unlockLevel + 1 === milestone.level;
 
           return (
-            <div key={idx} className="flex flex-col items-center gap-2 flex-1 relative z-10">
+            <div key={idx} className="flex flex-col items-center gap-2 relative z-10">
               <div
                 className={`w-12 h-12 rounded-full flex items-center justify-center transition-all ${
                   isUnlocked
@@ -36,7 +36,7 @@ export function UnlockProgressBar({ unlockLevel }: UnlockProgressBarProps) {
                 <Icon size={20} />
               </div>
               <span
-                className={`text-xs ${
+                className={`text-xs text-center ${
                   isUnlocked ? 'text-black' : isNext ? 'text-neutral-700' : 'text-neutral-400'
                 }`}
               >

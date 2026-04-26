@@ -9,7 +9,8 @@ import { Button } from '../../components/Button';
 export function SignupScreen() {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
-    name: '',
+    firstName: '',
+    lastName: '',
     email: '',
     password: '',
     age: '',
@@ -31,14 +32,24 @@ export function SignupScreen() {
         </div>
 
         <form onSubmit={handleSignup} className="flex flex-col gap-5">
-          <FormField
-            label="Name"
-            type="text"
-            value={formData.name}
-            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-            placeholder="Your name"
-            required
-          />
+          <div className="grid grid-cols-2 gap-3">
+            <FormField
+              label="First Name"
+              type="text"
+              value={formData.firstName}
+              onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
+              placeholder="First name"
+              required
+            />
+            <FormField
+              label="Last Name"
+              type="text"
+              value={formData.lastName}
+              onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
+              placeholder="Last name"
+              required
+            />
+          </div>
 
           <FormField
             label="Email"
