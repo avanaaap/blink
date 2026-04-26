@@ -66,6 +66,7 @@ export type MatchDetail = {
   id: string;
   partner_name: string;
   partner_age?: number;
+  partner_bio?: string;
   compatibility_score?: number;
   shared_interests: string[];
   status: MatchStatus;

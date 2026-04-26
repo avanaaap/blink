@@ -16,7 +16,7 @@ def _build_match_detail(sb, match: dict, uid: str) -> MatchDetail:
 
     partner = (
         sb.table("profiles")
-        .select("name, age, interests")
+        .select("name, age, bio, interests")
         .eq("id", partner_id)
         .single()
         .execute()
@@ -28,6 +28,7 @@ def _build_match_detail(sb, match: dict, uid: str) -> MatchDetail:
         id=match["id"],
         partner_name=partner_data.get("name", "Unknown"),
         partner_age=partner_data.get("age"),
+        partner_bio=partner_data.get("bio", ""),
         compatibility_score=match.get("compatibility_score"),
         shared_interests=match.get("shared_interests", []),
         status=match["status"],
