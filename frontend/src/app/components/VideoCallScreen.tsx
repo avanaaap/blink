@@ -140,7 +140,7 @@ export function VideoCallScreen() {
     return (
       <div className="h-screen bg-gradient-to-br from-[#4A3B32] via-[#5a4a3f] to-[#2a1f18] flex items-center justify-center relative overflow-hidden">
         <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] rounded-full bg-gradient-to-br from-[#D4A574]/20 to-transparent blur-3xl gradient-blob" />
-        <FloatingHearts count={6} />
+        <FloatingHearts count={16} />
         <div className="text-center relative z-10">
           <Loader2
             size={48}
@@ -182,7 +182,7 @@ export function VideoCallScreen() {
           {!partnerJoined && (
             <div className="w-full h-full flex items-center justify-center text-white text-center relative">
               <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] rounded-full bg-gradient-to-br from-[#D4A574]/15 to-transparent blur-3xl gradient-blob" />
-              <FloatingHearts count={8} />
+              <FloatingHearts count={20} />
               <div className="relative z-10">
                 <div className="w-36 h-36 rounded-full mx-auto mb-4 p-[3px] bg-gradient-to-br from-[#D4A574] via-[#E8C9A0] to-[#D4A574] animate-pulse">
                   <div className="w-full h-full bg-[#4A3B32]/80 backdrop-blur-sm rounded-full flex items-center justify-center">

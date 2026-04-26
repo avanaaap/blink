@@ -108,7 +108,7 @@ export function VoiceCallScreen() {
       <div className="absolute top-[40%] right-[10%] w-[25%] h-[25%] rounded-full bg-gradient-to-bl from-[#E8C9A0]/10 to-transparent blur-2xl gradient-blob" style={{ animationDelay: '3s' }} />
 
       {/* Floating hearts */}
-      <FloatingHearts count={10} />
+      <FloatingHearts count={20} />
 
       <div className="flex-1 flex items-center justify-center relative z-10">
         <div className="text-center">

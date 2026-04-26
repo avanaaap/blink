@@ -12,16 +12,16 @@ interface Heart {
 
 const HEART_EMOJIS = ['♥', '♡', '❤'];
 
-export function FloatingHearts({ count = 8 }: { count?: number }) {
+export function FloatingHearts({ count = 20 }: { count?: number }) {
   const [hearts, setHearts] = useState<Heart[]>([]);
 
   useEffect(() => {
     const generated: Heart[] = Array.from({ length: count }, (_, i) => ({
       id: i,
       left: Math.random() * 100,
-      duration: 8 + Math.random() * 12,
-      delay: Math.random() * 10,
-      size: 0.6 + Math.random() * 1.2,
+      duration: 6 + Math.random() * 10,
+      delay: Math.random() * 8,
+      size: 1.2 + Math.random() * 2.0,
       sway: Math.random() > 0.5,
       emoji: HEART_EMOJIS[Math.floor(Math.random() * HEART_EMOJIS.length)],
     }));

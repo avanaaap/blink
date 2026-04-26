@@ -194,7 +194,7 @@ export function DashboardScreen() {
       <div className="absolute top-[50%] right-[5%] w-[20%] h-[20%] rounded-full bg-gradient-to-tl from-[#E8C9A0]/10 to-transparent blur-2xl gradient-blob" style={{ animationDelay: '3s' }} />
 
       {/* Floating hearts in background */}
-      <FloatingHearts count={6} />
+      <FloatingHearts count={18} />
 
       <div className="max-w-2xl mx-auto px-6 py-8 relative z-10">
         <div className="flex items-center justify-between mb-12">
@@ -427,7 +427,7 @@ export function DashboardScreen() {
       {/* Outgoing call (ringing) overlay */}
       {ringingMode && (
         <div className="fixed inset-0 bg-gradient-to-br from-[#4A3B32]/80 to-[#2a1f18]/80 backdrop-blur-sm flex items-center justify-center z-50">
-          <FloatingHearts count={5} />
+          <FloatingHearts count={15} />
           <div className="bg-white/95 backdrop-blur-md rounded-3xl p-8 max-w-sm w-full mx-6 text-center relative z-10 shadow-2xl border border-[#D4A574]/20">
             <div className="w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6 p-[3px] bg-gradient-to-br from-[#D4A574] via-[#E8C9A0] to-[#D4A574] animate-pulse">
               <div className="w-full h-full bg-[#4A3B32] rounded-full flex items-center justify-center">
@@ -453,7 +453,7 @@ export function DashboardScreen() {
       {/* Incoming call modal */}
       {incomingInvite && (
         <div className="fixed inset-0 bg-gradient-to-br from-[#4A3B32]/80 to-[#2a1f18]/80 backdrop-blur-sm flex items-center justify-center z-50">
-          <FloatingHearts count={8} />
+          <FloatingHearts count={15} />
           <div className="bg-white/95 backdrop-blur-md rounded-3xl p-8 max-w-sm w-full mx-6 text-center relative z-10 shadow-2xl border border-[#D4A574]/20">
             <div className="w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6 p-[3px] bg-gradient-to-br from-green-400 via-green-500 to-green-400 animate-pulse">
               <div className="w-full h-full bg-green-500 rounded-full flex items-center justify-center">
