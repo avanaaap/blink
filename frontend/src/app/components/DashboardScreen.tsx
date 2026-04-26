@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { BlinkLogo } from './BlinkLogo';
-import { Settings, LogOut, MessageCircle, Phone, Video, Flag, PhoneOff, Loader2, Eye, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Settings, LogOut, MessageCircle, Phone, Video, Flag, PhoneOff, Loader2, User, ChevronLeft, ChevronRight } from 'lucide-react';
 import { APP_ROUTES } from '../../lib/routes';
 import { Button } from '../../components/Button';
 import { getTodayMatch, getAllMatches, getPartnerReveal } from '../../lib/api/match-api';
@@ -174,16 +174,15 @@ export function DashboardScreen() {
   const revealPhotos = partnerReveal?.photos ?? [];
 
   return (
-    <div className="min-h-screen bg-[#faf7f3]">
+    <div className="min-h-screen bg-white">
       <div className="max-w-2xl mx-auto px-6 py-8">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-10">
+        <div className="flex items-center justify-between mb-12">
           <BlinkLogo size={50} className="text-[#4A3B32]" />
           <div className="flex gap-3">
             {match && (
               <button
                 onClick={() => setShowReportModal(true)}
-                className="p-2 hover:bg-white/80 rounded-full transition-colors text-[#4A3B32]"
+                className="p-2 hover:bg-neutral-100 rounded-full transition-colors"
                 aria-label="Report from match screen"
               >
                 <Flag size={24} />
@@ -191,13 +190,13 @@ export function DashboardScreen() {
             )}
             <button
               onClick={() => navigate(APP_ROUTES.settings)}
-              className="p-2 hover:bg-white/80 rounded-full transition-colors text-[#4A3B32]"
+              className="p-2 hover:bg-neutral-100 rounded-full transition-colors"
             >
               <Settings size={24} />
             </button>
             <button
               onClick={() => navigate(APP_ROUTES.landing)}
-              className="p-2 hover:bg-white/80 rounded-full transition-colors text-[#4A3B32]"
+              className="p-2 hover:bg-neutral-100 rounded-full transition-colors"
             >
               <LogOut size={24} />
             </button>
@@ -206,8 +205,8 @@ export function DashboardScreen() {
 
         {isLoading ? (
           <div className="flex flex-col items-center gap-4 py-16">
-            <div className="w-12 h-12 border-4 border-[#D4A574]/30 border-t-[#4A3B32] rounded-full animate-spin" />
-            <p className="text-[#4A3B32]/70">Finding your match...</p>
+            <div className="w-12 h-12 border-4 border-neutral-200 border-t-[#4A3B32] rounded-full animate-spin" />
+            <p className="text-neutral-600">Finding your match...</p>
           </div>
         ) : error ? (
           <div className="flex flex-col items-center gap-4 py-16">
@@ -215,15 +214,17 @@ export function DashboardScreen() {
             <Button onClick={() => window.location.reload()}>Try Again</Button>
           </div>
         ) : !isPaused && match ? (
-          <div className="flex flex-col gap-8">
-            {/* TODAY'S MATCH */}
-            <section>
-              <h2 className="text-sm font-medium uppercase tracking-wider text-[#D4A574] mb-4">Today's Match</h2>
+          <div className="flex flex-col items-center gap-8">
+            <div className="text-center">
+              <h1 className="text-4xl mb-3">Today's Match</h1>
+              <p className="text-neutral-600">Your blind date awaits</p>
+            </div>
 
-              <div className="bg-white rounded-3xl border border-[#D4A574]/30 overflow-hidden shadow-sm">
-                {/* Partner profile photo (level 4+) */}
+            <div className="w-full bg-neutral-50 rounded-3xl p-8 border-2 border-neutral-200">
+              <div className="flex flex-col items-center gap-6">
+                {/* Profile photo or mystery avatar */}
                 {profileRevealed && revealPhotos.length > 0 ? (
-                  <div className="relative aspect-[4/3] w-full bg-neutral-100">
+                  <div className="relative w-full max-w-sm aspect-[4/3] rounded-2xl overflow-hidden bg-neutral-200">
                     <img
                       src={revealPhotos[revealPhotoIndex]?.url}
                       alt={`${partnerReveal?.name ?? 'Partner'} photo`}
@@ -233,174 +234,180 @@ export function DashboardScreen() {
                       <>
                         <button
                           onClick={() => setRevealPhotoIndex((i) => (i - 1 + revealPhotos.length) % revealPhotos.length)}
-                          className="absolute left-3 top-1/2 -translate-y-1/2 rounded-full bg-[#4A3B32]/60 p-2 text-white hover:bg-[#4A3B32]/80"
+                          className="absolute left-2 top-1/2 -translate-y-1/2 rounded-full bg-[#4A3B32]/60 p-1.5 text-white hover:bg-[#4A3B32]/80"
                         >
-                          <ChevronLeft size={18} />
+                          <ChevronLeft size={16} />
                         </button>
                         <button
                           onClick={() => setRevealPhotoIndex((i) => (i + 1) % revealPhotos.length)}
-                          className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full bg-[#4A3B32]/60 p-2 text-white hover:bg-[#4A3B32]/80"
+                          className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full bg-[#4A3B32]/60 p-1.5 text-white hover:bg-[#4A3B32]/80"
                         >
-                          <ChevronRight size={18} />
+                          <ChevronRight size={16} />
                         </button>
-                        <div className="absolute left-1/2 top-3 flex -translate-x-1/2 gap-1.5 rounded-full bg-[#4A3B32]/40 px-3 py-1">
+                        <div className="absolute left-1/2 top-2 flex -translate-x-1/2 gap-1 rounded-full bg-[#4A3B32]/40 px-2 py-0.5">
                           {revealPhotos.map((_, i) => (
-                            <div key={i} className={`h-1.5 w-5 rounded-full ${i === revealPhotoIndex ? 'bg-white' : 'bg-white/40'}`} />
+                            <div key={i} className={`h-1.5 w-4 rounded-full ${i === revealPhotoIndex ? 'bg-white' : 'bg-white/40'}`} />
                           ))}
                         </div>
                       </>
                     )}
                     {revealPhotos[revealPhotoIndex]?.caption && (
-                      <div className="absolute bottom-0 left-0 right-0 bg-[#4A3B32]/70 px-4 py-2">
-                        <p className="text-sm text-white">{revealPhotos[revealPhotoIndex].caption}</p>
+                      <div className="absolute bottom-0 left-0 right-0 bg-[#4A3B32]/70 px-3 py-2">
+                        <p className="text-xs text-white">{revealPhotos[revealPhotoIndex].caption}</p>
                       </div>
                     )}
                   </div>
-                ) : !profileRevealed ? (
-                  <div className="flex flex-col items-center gap-4 py-12 px-8">
-                    <div className="w-28 h-28 bg-gradient-to-br from-[#D4A574]/30 to-[#4A3B32]/20 rounded-full flex items-center justify-center">
-                      <span className="text-4xl text-[#4A3B32]/40">?</span>
-                    </div>
+                ) : (
+                  <div className="w-32 h-32 bg-gradient-to-br from-neutral-300 to-neutral-400 rounded-full flex items-center justify-center">
+                    <span className="text-5xl">?</span>
                   </div>
-                ) : null}
+                )}
 
-                <div className="p-6">
-                  <div className="text-center mb-4">
-                    <h3 className="text-2xl text-[#4A3B32]">{match.partner_name}, {match.partner_age}</h3>
-                    {!profileRevealed && (
-                      <p className="text-[#4A3B32]/60 text-sm mt-1">Profile hidden until trust is earned</p>
-                    )}
-                  </div>
+                <div className="text-center">
+                  <h2 className="text-2xl mb-2">{match.partner_name}, {match.partner_age}</h2>
+                  <p className="text-neutral-600">
+                    {profileRevealed ? 'Profile revealed' : 'Profile hidden until trust is earned'}
+                  </p>
+                </div>
 
-                  {/* Partner interests (from reveal or shared) */}
-                  {profileRevealed && partnerReveal?.interests && partnerReveal.interests.length > 0 ? (
-                    <div className="flex flex-wrap gap-2 justify-center mb-4">
-                      {partnerReveal.interests.map(interest => (
-                        <span key={interest} className="px-3 py-1.5 bg-[#D4A574]/15 border border-[#D4A574]/30 rounded-full text-sm text-[#4A3B32]">
-                          {interest}
-                        </span>
-                      ))}
-                    </div>
-                  ) : match.shared_interests.length > 0 && (
-                    <div className="flex flex-wrap gap-2 justify-center mb-4">
-                      {match.shared_interests.slice(0, 3).map(interest => (
-                        <span key={interest} className="px-3 py-1.5 bg-[#D4A574]/15 border border-[#D4A574]/30 rounded-full text-sm text-[#4A3B32]">
-                          {interest}
-                        </span>
-                      ))}
-                    </div>
-                  )}
-
-                  {/* Compatibility score */}
-                  {match.compatibility_score != null && (
-                    <div className="bg-[#faf7f3] rounded-xl p-4 mb-4">
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-sm text-[#4A3B32]/70">Compatibility</span>
-                        <span className="text-sm font-medium text-[#4A3B32]">{match.compatibility_score}%</span>
-                      </div>
-                      <div className="w-full bg-[#D4A574]/20 rounded-full h-2">
-                        <div
-                          className="bg-[#D4A574] h-2 rounded-full transition-all"
-                          style={{ width: `${match.compatibility_score}%` }}
-                        />
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Unlock flow buttons */}
-                  <div className="space-y-1.5 text-sm">
-                    <button
-                      onClick={() => navigate(`${APP_ROUTES.chat}?matchId=${match.id}&unlockLevel=${unlockLevel}`)}
-                      className="flex w-full items-center justify-between rounded-lg border border-[#4A3B32] bg-[#4A3B32] px-3 py-2 text-left text-white"
-                    >
-                      <span className="flex items-center gap-2"><MessageCircle size={15} /> Text Messages</span>
-                      <span className="text-[11px] text-white/90">Available</span>
-                    </button>
-                    <button
-                      onClick={() => voiceUnlocked && startCall('voice')}
-                      disabled={!voiceUnlocked}
-                      className={[
-                        'flex w-full items-center justify-between rounded-lg border px-3 py-2 text-left transition-colors',
-                        voiceUnlocked
-                          ? 'border-[#4A3B32] bg-[#4A3B32] text-white'
-                          : 'cursor-not-allowed border-[#D4A574]/30 bg-white text-[#4A3B32]/40',
-                        showVoiceUnlockGlow ? 'voice-unlock-glow' : '',
-                      ].join(' ')}
-                    >
-                      <span className="flex items-center gap-2"><Phone size={15} /> Voice Call</span>
-                      <span className={voiceUnlocked ? 'text-[11px] text-white/90' : 'text-[11px]'}>
-                        {voiceUnlocked ? 'Available' : 'Locked'}
+                {/* Partner interests when revealed, otherwise shared interests */}
+                {profileRevealed && partnerReveal?.interests && partnerReveal.interests.length > 0 ? (
+                  <div className="flex flex-wrap gap-2 justify-center">
+                    {partnerReveal.interests.map(interest => (
+                      <span key={interest} className="px-4 py-2 bg-white border border-neutral-300 rounded-full text-sm">
+                        {interest}
                       </span>
-                    </button>
-                    <button
-                      onClick={() => videoUnlocked && startCall('video')}
-                      disabled={!videoUnlocked}
-                      className={[
-                        'flex w-full items-center justify-between rounded-lg border px-3 py-2 text-left transition-colors',
-                        videoUnlocked
-                          ? 'border-[#4A3B32] bg-[#4A3B32] text-white'
-                          : 'cursor-not-allowed border-[#D4A574]/30 bg-white text-[#4A3B32]/40',
-                        showVideoUnlockGlow ? 'voice-unlock-glow' : '',
-                      ].join(' ')}
-                    >
-                      <span className="flex items-center gap-2"><Video size={15} /> Video Call</span>
-                      <span className={videoUnlocked ? 'text-[11px] text-white/90' : 'text-[11px]'}>
-                        {videoUnlocked ? 'Available' : 'Locked'}
-                      </span>
-                    </button>
-                    {profileRevealed && (
-                      <div className="flex items-center gap-2 rounded-lg bg-[#D4A574]/15 border border-[#D4A574]/30 px-3 py-2 text-[#4A3B32]">
-                        <Eye size={15} />
-                        <span className="text-sm">Profile Revealed</span>
-                      </div>
-                    )}
+                    ))}
                   </div>
+                ) : match.shared_interests.length > 0 && (
+                  <div className="flex flex-wrap gap-2 justify-center">
+                    {match.shared_interests.slice(0, 3).map(interest => (
+                      <span
+                        key={interest}
+                        className="px-4 py-2 bg-white border border-neutral-300 rounded-full text-sm"
+                      >
+                        {interest}
+                      </span>
+                    ))}
+                  </div>
+                )}
+
+                {match.compatibility_score != null && (
+                  <div className="w-full bg-white rounded-xl p-4 border border-neutral-300">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-sm text-neutral-600">Compatibility</span>
+                      <span className="text-sm">{match.compatibility_score}%</span>
+                    </div>
+                    <div className="w-full bg-neutral-200 rounded-full h-2">
+                      <div
+                        className="bg-[#4A3B32] h-2 rounded-full transition-all"
+                        style={{ width: `${match.compatibility_score}%` }}
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-3 w-full max-w-sm">
+              <div className="rounded-xl border border-neutral-200 bg-white p-3.5">
+                <h3 className="mb-2 text-[13px] text-neutral-600">Conversation-first unlock flow</h3>
+                <div className="space-y-1.5 text-sm">
+                  <button
+                    onClick={() => navigate(`${APP_ROUTES.chat}?matchId=${match.id}&unlockLevel=${unlockLevel}`)}
+                    className="flex w-full items-center justify-between rounded-lg border border-[#4A3B32] bg-[#4A3B32] px-3 py-1.5 text-left text-white"
+                  >
+                    <span className="flex items-center gap-2"><MessageCircle size={15} /> Text Messages</span>
+                    <span className="text-[11px] text-white/90">Available</span>
+                  </button>
+                  <button
+                    onClick={() => voiceUnlocked && startCall('voice')}
+                    disabled={!voiceUnlocked}
+                    className={[
+                      'flex w-full items-center justify-between rounded-lg border px-3 py-1.5 text-left transition-colors',
+                      voiceUnlocked
+                        ? 'border-[#4A3B32] bg-[#4A3B32] text-white'
+                        : 'cursor-not-allowed border-neutral-200 bg-white text-neutral-500',
+                      showVoiceUnlockGlow ? 'voice-unlock-glow' : '',
+                    ].join(' ')}
+                  >
+                    <span className="flex items-center gap-2"><Phone size={15} /> Voice Call</span>
+                    <span className={voiceUnlocked ? 'text-[11px] text-white/90' : 'text-[11px] text-neutral-500'}>
+                      {voiceUnlocked ? 'Available' : 'Locked'}
+                    </span>
+                  </button>
+                  <button
+                    onClick={() => videoUnlocked && startCall('video')}
+                    disabled={!videoUnlocked}
+                    className={[
+                      'flex w-full items-center justify-between rounded-lg border px-3 py-1.5 text-left transition-colors',
+                      videoUnlocked
+                        ? 'border-[#4A3B32] bg-[#4A3B32] text-white'
+                        : 'cursor-not-allowed border-neutral-200 bg-white text-neutral-500',
+                      showVideoUnlockGlow ? 'voice-unlock-glow' : '',
+                    ].join(' ')}
+                  >
+                    <span className="flex items-center gap-2"><Video size={15} /> Video Call</span>
+                    <span className={videoUnlocked ? 'text-[11px] text-white/90' : 'text-[11px] text-neutral-500'}>
+                      {videoUnlocked ? 'Available' : 'Locked'}
+                    </span>
+                  </button>
                 </div>
               </div>
-            </section>
 
-            {/* ALL MATCHES */}
+              {unlockLevel >= 4 && (
+                <button
+                  onClick={() => navigate(`${APP_ROUTES.reveal}?matchId=${match.id}`)}
+                  className="flex items-center justify-center gap-2 rounded-lg border border-[#4A3B32] px-3 py-2 text-[#4A3B32] hover:bg-neutral-50 transition-colors text-sm"
+                >
+                  <User size={15} />
+                  View Full Profile
+                </button>
+              )}
+            </div>
+
+            {/* Past Matches */}
             {allMatches.length > 0 && (
-              <section>
-                <h2 className="text-sm font-medium uppercase tracking-wider text-[#D4A574] mb-4">Past Matches</h2>
-                <div className="flex flex-col gap-3">
+              <div className="w-full max-w-sm">
+                <h3 className="text-sm text-neutral-500 mb-3">Past Matches</h3>
+                <div className="flex flex-col gap-2">
                   {allMatches.map((m) => {
                     const mUnlock = m.unlock_level ?? 0;
                     return (
                       <div
                         key={m.id}
-                        className="bg-white rounded-2xl border border-[#D4A574]/30 p-4 flex items-center justify-between cursor-pointer hover:shadow-sm transition-shadow"
+                        className="bg-white rounded-xl border border-neutral-200 p-3 flex items-center justify-between cursor-pointer hover:bg-neutral-50 transition-colors"
                         onClick={() => navigate(`${APP_ROUTES.chat}?matchId=${m.id}&unlockLevel=${mUnlock}`)}
                       >
                         <div className="flex items-center gap-3">
-                          <div className="w-12 h-12 bg-gradient-to-br from-[#D4A574]/30 to-[#4A3B32]/20 rounded-full flex items-center justify-center">
-                            <span className="text-lg text-[#4A3B32]/50">
+                          <div className="w-10 h-10 bg-gradient-to-br from-neutral-300 to-neutral-400 rounded-full flex items-center justify-center">
+                            <span className="text-sm text-white">
                               {m.partner_name?.charAt(0) ?? '?'}
                             </span>
                           </div>
                           <div>
-                            <p className="font-medium text-[#4A3B32]">{m.partner_name}{m.partner_age ? `, ${m.partner_age}` : ''}</p>
-                            <p className="text-xs text-[#4A3B32]/50">
+                            <p className="text-sm font-medium">{m.partner_name}{m.partner_age ? `, ${m.partner_age}` : ''}</p>
+                            <p className="text-xs text-neutral-500">
                               {m.status === 'connected' ? 'Connected' : `Level ${mUnlock}`}
                               {m.compatibility_score != null && ` · ${m.compatibility_score}% match`}
                             </p>
                           </div>
                         </div>
-                        <ChevronRight size={18} className="text-[#D4A574]" />
+                        <ChevronRight size={16} className="text-neutral-400" />
                       </div>
                     );
                   })}
                 </div>
-              </section>
+              </div>
             )}
           </div>
         ) : (
           <div className="flex flex-col items-center gap-8 py-16">
             <div className="text-center">
-              <h1 className="text-4xl text-[#4A3B32] mb-3">
+              <h1 className="text-4xl mb-3">
                 {isPaused ? 'Matches Paused' : 'No Matches Yet'}
               </h1>
-              <p className="text-[#4A3B32]/60">
+              <p className="text-neutral-600">
                 {isPaused
                   ? 'Resume anytime to start receiving matches'
                   : 'No compatible matches found today. Check back tomorrow for a new connection.'}
@@ -418,16 +425,16 @@ export function DashboardScreen() {
 
       {/* Outgoing call (ringing) overlay */}
       {ringingMode && (
-        <div className="fixed inset-0 bg-[#4A3B32]/80 backdrop-blur-sm flex items-center justify-center z-50">
+        <div className="fixed inset-0 bg-[#4A3B32]/70 backdrop-blur-sm flex items-center justify-center z-50">
           <div className="bg-white rounded-3xl p-8 max-w-sm w-full mx-6 text-center">
             <div className="w-20 h-20 bg-[#4A3B32] rounded-full flex items-center justify-center mx-auto mb-6 animate-pulse">
               {ringingMode === 'video' ? <Video size={36} className="text-white" /> : <Phone size={36} className="text-white" />}
             </div>
-            <h2 className="text-2xl text-[#4A3B32] mb-2">Calling {match?.partner_name}...</h2>
-            <p className="text-[#4A3B32]/60 mb-6">Waiting for them to pick up</p>
+            <h2 className="text-2xl mb-2">Calling {match?.partner_name}...</h2>
+            <p className="text-neutral-600 mb-6">Waiting for them to pick up</p>
             <div className="flex items-center justify-center gap-2 mb-6">
-              <Loader2 size={16} className="animate-spin text-[#D4A574]" />
-              <span className="text-sm text-[#4A3B32]/60">Ringing</span>
+              <Loader2 size={16} className="animate-spin text-neutral-400" />
+              <span className="text-sm text-neutral-500">Ringing</span>
             </div>
             <button
               onClick={cancelRinging}
@@ -441,13 +448,13 @@ export function DashboardScreen() {
 
       {/* Incoming call modal */}
       {incomingInvite && (
-        <div className="fixed inset-0 bg-[#4A3B32]/80 backdrop-blur-sm flex items-center justify-center z-50">
+        <div className="fixed inset-0 bg-[#4A3B32]/70 backdrop-blur-sm flex items-center justify-center z-50">
           <div className="bg-white rounded-3xl p-8 max-w-sm w-full mx-6 text-center">
             <div className="w-20 h-20 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-6 animate-pulse">
               {incomingInvite.mode === 'video' ? <Video size={36} className="text-white" /> : <Phone size={36} className="text-white" />}
             </div>
-            <h2 className="text-2xl text-[#4A3B32] mb-2">Incoming {incomingInvite.mode === 'video' ? 'Video' : 'Voice'} Call</h2>
-            <p className="text-[#4A3B32]/60 mb-8">{match?.partner_name} is calling you</p>
+            <h2 className="text-2xl mb-2">Incoming {incomingInvite.mode === 'video' ? 'Video' : 'Voice'} Call</h2>
+            <p className="text-neutral-600 mb-8">{match?.partner_name} is calling you</p>
             <div className="flex justify-center gap-6">
               <button
                 onClick={declineIncoming}
