@@ -5,33 +5,15 @@ from fastapi import APIRouter, Depends, HTTPException
 from app.core.auth import get_current_user
 from app.core.supabase import get_supabase
 from app.models.match import MatchDetail, UnlockUpdate
+from app.services.matching import create_match_for_user
 
 router = APIRouter(prefix="/api/matches", tags=["matches"])
 
 
-@router.get("/today", response_model=MatchDetail | None)
-async def get_today_match(user: dict = Depends(get_current_user)):
-    """Return the current user's match for today."""
-    sb = get_supabase()
-    uid = user["id"]
-    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
-    result = (
-        sb.table("matches")
-        .select("*")
-        .eq("match_date", today)
-        .or_(f"user_a.eq.{uid},user_b.eq.{uid}")
-        .eq("status", "active")
-        .limit(1)
-        .execute()
-    )
-
-    if not result.data:
-        return None
-
-    match = result.data[0]
+def _build_match_detail(sb, match: dict, uid: str) -> MatchDetail:
+    """Build a MatchDetail from a match row and the requesting user's id."""
     partner_id = match["user_b"] if match["user_a"] == uid else match["user_a"]
 
-    # Fetch partner's profile for display
     partner = (
         sb.table("profiles")
         .select("name, age, interests")
@@ -61,6 +43,33 @@ async def get_today_match(user: dict = Depends(get_current_user)):
         status=match["status"],
         unlock_level=match.get("unlock_level", 0),
     )
+
+
+@router.get("/today", response_model=MatchDetail | None)
+async def get_today_match(user: dict = Depends(get_current_user)):
+    """Return the current user's match for today, creating one if needed."""
+    sb = get_supabase()
+    uid = user["id"]
+    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+
+    result = (
+        sb.table("matches")
+        .select("*")
+        .eq("match_date", today)
+        .or_(f"user_a.eq.{uid},user_b.eq.{uid}")
+        .limit(1)
+        .execute()
+    )
+
+    if result.data:
+        return _build_match_detail(sb, result.data[0], uid)
+
+    # No match yet — run the matching algorithm on demand
+    new_match = create_match_for_user(sb, uid)
+    if not new_match:
+        return None
+
+    return _build_match_detail(sb, new_match, uid)
 
 
 @router.patch("/{match_id}/unlock", response_model=MatchDetail)

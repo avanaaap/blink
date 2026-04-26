@@ -42,6 +42,18 @@ SPENDING_MATCH_SCORE = 10
 KIDS_EXACT_MATCH_SCORE = 10
 KIDS_OPEN_MATCH_SCORE = 5
 
+RELATIONSHIP_TYPE_MATCH_SCORE = 10
+RELATIONSHIP_TYPE_OPEN_SCORE = 5
+
+DEBT_MATCH_SCORE = 5
+DEBT_PARTIAL_SCORE = 2
+
+ISLAND_MATCH_SCORE = 5
+ISLAND_PARTIAL_SCORE = 1
+
+INSTRUMENT_MATCH_SCORE = 5
+INSTRUMENT_PARTIAL_SCORE = 1
+
 # ---------------------------------------------------------------------------
 # Conflict-style modifier matrix (Step 3)
 # Keys are the Postgres enum values stored in ``profiles.conflict_style``.
@@ -233,7 +245,52 @@ def _compute_base_score(a: dict[str, Any], b: dict[str, Any]) -> tuple[float, li
     else:
         kids_score = 0
 
-    base = interest_score + meaning_score + time_score + spending_score + kids_score
+    # Relationship type (10 pts exact, 5 pts if one side is open)
+    a_rel = a.get("relationship_type")
+    b_rel = b.get("relationship_type")
+    if a_rel and b_rel:
+        if a_rel == b_rel:
+            rel_score = RELATIONSHIP_TYPE_MATCH_SCORE
+        elif "Open to Either" in (a_rel, b_rel):
+            rel_score = RELATIONSHIP_TYPE_OPEN_SCORE
+        else:
+            rel_score = 0
+    else:
+        rel_score = 0
+
+    # Debt compatibility (5 pts exact, 2 pts partial)
+    a_debt = a.get("has_debt")
+    b_debt = b.get("has_debt")
+    if a_debt and b_debt:
+        if a_debt == b_debt:
+            debt_score = DEBT_MATCH_SCORE
+        elif "Prefer not to say" in (a_debt, b_debt):
+            debt_score = DEBT_PARTIAL_SCORE
+        else:
+            debt_score = 0
+    else:
+        debt_score = 0
+
+    # Island scenario (5 pts exact, 1 pt partial)
+    a_island = a.get("island_scenario")
+    b_island = b.get("island_scenario")
+    if a_island and b_island:
+        island_score = ISLAND_MATCH_SCORE if a_island == b_island else ISLAND_PARTIAL_SCORE
+    else:
+        island_score = 0
+
+    # Musical instrument (5 pts exact, 1 pt partial)
+    a_music = a.get("musical_instrument")
+    b_music = b.get("musical_instrument")
+    if a_music and b_music:
+        music_score = INSTRUMENT_MATCH_SCORE if a_music == b_music else INSTRUMENT_PARTIAL_SCORE
+    else:
+        music_score = 0
+
+    base = (
+        interest_score + meaning_score + time_score + spending_score
+        + kids_score + rel_score + debt_score + island_score + music_score
+    )
     return base, shared
 
 
@@ -444,3 +501,84 @@ async def submit_stage_decision(
         new_level,
     )
     return {"status": "advanced", "unlock_level": new_level}
+
+
+# ===================================================================== #
+#  On-Demand Match Creation (per-user)                                  #
+# ===================================================================== #
+
+def create_match_for_user(sb: Any, user_id: str) -> dict[str, Any] | None:
+    """Find and create the best match for a single user on-demand.
+
+    Called when a user visits the dashboard and has no match for today.
+    Returns the created match row or None if no eligible candidate exists.
+    """
+    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+
+    # Check if user already has a match today (any status)
+    existing = (
+        sb.table("matches")
+        .select("id")
+        .eq("match_date", today)
+        .or_(f"user_a.eq.{user_id},user_b.eq.{user_id}")
+        .limit(1)
+        .execute()
+    )
+    if existing.data:
+        return None
+
+    # Get user's profile
+    user_result = (
+        sb.table("profiles").select("*").eq("id", user_id).single().execute()
+    )
+    if not user_result.data:
+        return None
+    user = user_result.data
+
+    # Get all eligible candidates
+    profiles = _fetch_eligible_profiles(sb)
+    blocks = _fetch_blocks(sb)
+    already_matched = _fetch_todays_matched_users(sb, today)
+    historical_pairs = _fetch_historical_pairs(sb)
+
+    best_candidate = None
+    best_score = -1
+    best_shared: list[str] = []
+
+    for candidate in profiles:
+        if not _is_eligible_pair(user, candidate, blocks, already_matched, historical_pairs):
+            continue
+
+        base_score, shared_interests = _compute_base_score(user, candidate)
+        final_score = _apply_conflict_modifier(base_score, user, candidate)
+
+        if final_score > best_score:
+            best_candidate = candidate
+            best_score = final_score
+            best_shared = shared_interests
+
+    if best_candidate is None:
+        return None
+
+    ua, ub = _order_pair(user_id, best_candidate["id"])
+    match_row = (
+        sb.table("matches")
+        .insert({
+            "user_a": ua,
+            "user_b": ub,
+            "compatibility_score": best_score,
+            "shared_interests": best_shared,
+            "match_date": today,
+            "status": "active",
+            "unlock_level": 1,
+        })
+        .execute()
+    )
+
+    if not match_row.data:
+        return None
+
+    logger.info(
+        "On-demand match created for user %s: score=%d", user_id, best_score
+    )
+    return match_row.data[0]
