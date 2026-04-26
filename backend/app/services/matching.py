@@ -484,6 +484,23 @@ async def submit_stage_decision(
         on_conflict="match_id,user_id,unlock_level",
     ).execute()
 
+    # If this user chose dont_move_forward, immediately unmatch
+    if decision == STAGE_DECISION_BLOCK:
+        sb.table("matches").update(
+            {"status": "unmatched"}
+        ).eq("id", match_id).execute()
+
+        logger.info(
+            "Match %s unmatched at unlock_level %d (user %s blocked)",
+            match_id,
+            match["unlock_level"],
+            user_id,
+        )
+        return {
+            "status": "unmatched",
+            "unlock_level": match["unlock_level"],
+        }
+
     # Check if both users have decided for the current level
     decisions = (
         sb.table("stage_decisions")
