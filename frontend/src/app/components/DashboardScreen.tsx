@@ -386,40 +386,6 @@ export function DashboardScreen() {
               </button>
             </div>
 
-            {/* Past Matches */}
-            {allMatches.length > 0 && (
-              <div className="w-full max-w-sm">
-                <h3 className="text-sm text-neutral-500 mb-3">Past Matches</h3>
-                <div className="flex flex-col gap-2">
-                  {allMatches.map((m) => {
-                    const mUnlock = m.unlock_level ?? 0;
-                    return (
-                      <div
-                        key={m.id}
-                        className="bg-white rounded-xl border border-neutral-200 p-3 flex items-center justify-between cursor-pointer hover:bg-neutral-50 transition-colors"
-                        onClick={() => navigate(`${APP_ROUTES.chat}?matchId=${m.id}&unlockLevel=${mUnlock}`)}
-                      >
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 bg-gradient-to-br from-neutral-300 to-neutral-400 rounded-full flex items-center justify-center">
-                            <span className="text-sm text-white">
-                              {m.partner_name?.charAt(0) ?? '?'}
-                            </span>
-                          </div>
-                          <div>
-                            <p className="text-sm font-medium">{m.partner_name}{m.partner_age ? `, ${m.partner_age}` : ''}</p>
-                            <p className="text-xs text-neutral-500">
-                              {m.status === 'connected' ? 'Connected' : `Level ${mUnlock}`}
-                              {m.compatibility_score != null && ` · ${m.compatibility_score}% match`}
-                            </p>
-                          </div>
-                        </div>
-                        <ChevronRight size={16} className="text-neutral-400" />
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
           </div>
         ) : (
           <div className="flex flex-col items-center gap-8 py-16">
@@ -439,6 +405,68 @@ export function DashboardScreen() {
                 Resume Matches
               </Button>
             )}
+          </div>
+        )}
+
+        {/* All Matches — always visible when there are past matches */}
+        {allMatches.length > 0 && (
+          <div className="max-w-sm mx-auto mt-8">
+            <h3 className="text-sm text-neutral-500 mb-3">All Matches</h3>
+            <div className="flex flex-col gap-2">
+              {allMatches.map((m) => {
+                const mUnlock = m.unlock_level ?? 0;
+                const mVoice = mUnlock >= 2;
+                const mVideo = mUnlock >= 3;
+                return (
+                  <div
+                    key={m.id}
+                    className="bg-white rounded-xl border border-neutral-200 p-3"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-gradient-to-br from-neutral-300 to-neutral-400 rounded-full flex items-center justify-center flex-shrink-0">
+                        <span className="text-sm text-white">
+                          {m.partner_name?.charAt(0) ?? '?'}
+                        </span>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium">{m.partner_name}{m.partner_age ? `, ${m.partner_age}` : ''}</p>
+                        <p className="text-xs text-neutral-500">
+                          {m.status === 'connected' ? 'Connected' : `Level ${mUnlock}`}
+                          {m.compatibility_score != null && ` · ${m.compatibility_score}% match`}
+                        </p>
+                      </div>
+                      <div className="flex gap-1.5 flex-shrink-0">
+                        <button
+                          onClick={() => navigate(`${APP_ROUTES.chat}?matchId=${m.id}&unlockLevel=${mUnlock}`)}
+                          className="p-2 rounded-full bg-[#4A3B32] text-white hover:bg-[#4A3B32]/80 transition-colors"
+                          title="Chat"
+                        >
+                          <MessageCircle size={14} />
+                        </button>
+                        {mVoice && (
+                          <button
+                            onClick={() => navigate(`${APP_ROUTES.voiceCall}?matchId=${m.id}&unlockLevel=${mUnlock}`)}
+                            className="p-2 rounded-full bg-[#4A3B32] text-white hover:bg-[#4A3B32]/80 transition-colors"
+                            title="Voice Call"
+                          >
+                            <Phone size={14} />
+                          </button>
+                        )}
+                        {mVideo && (
+                          <button
+                            onClick={() => navigate(`${APP_ROUTES.videoCall}?matchId=${m.id}&unlockLevel=${mUnlock}`)}
+                            className="p-2 rounded-full bg-[#4A3B32] text-white hover:bg-[#4A3B32]/80 transition-colors"
+                            title="Video Call"
+                          >
+                            <Video size={14} />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           </div>
         )}
       </div>
