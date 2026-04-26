@@ -13,12 +13,14 @@ CREATE TYPE debt_status          AS ENUM ('No debt', 'Student loans', 'Credit ca
 CREATE TYPE kids_preference      AS ENUM ('Yes', 'No', 'Maybe / Open to it', 'Already have kids');
 CREATE TYPE match_status         AS ENUM ('active', 'completed', 'expired', 'declined');
 CREATE TYPE interaction_type     AS ENUM ('chat', 'voice', 'video');
+CREATE TYPE gender_identity     AS ENUM ('Man', 'Woman', 'Non-binary', 'Prefer not to say');
 
 -- 1. profiles
 CREATE TABLE IF NOT EXISTS profiles (
   id                   uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   name                 text NOT NULL,
   age                  integer NOT NULL CHECK (age >= 18),
+  gender               gender_identity,
   sexuality            sexuality_option,
   interested_in        gender_option[] DEFAULT '{}',
   relationship_type    relationship_type,
