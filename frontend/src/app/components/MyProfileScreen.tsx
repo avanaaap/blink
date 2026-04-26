@@ -3,6 +3,8 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, UserCircle2, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
 import { APP_ROUTES } from '../../lib/routes';
 import { getMyProfile } from '../../lib/api/profile-api';
+import { listMyPhotos } from '../../lib/api/photo-api';
+import type { Photo } from '../../lib/api/photo-api';
 import type { Profile } from '../../lib/types';
 
 export function MyProfileScreen() {
@@ -14,11 +16,16 @@ export function MyProfileScreen() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const [photos, setPhotos] = useState<Photo[]>([]);
+
   useEffect(() => {
     let cancelled = false;
-    getMyProfile()
-      .then((data) => {
-        if (!cancelled) setProfile(data);
+    Promise.all([getMyProfile(), listMyPhotos()])
+      .then(([profileData, photosData]) => {
+        if (!cancelled) {
+          setProfile(profileData);
+          setPhotos(photosData);
+        }
       })
       .catch((err) => {
         if (!cancelled) setError(err.message ?? 'Failed to load profile');
@@ -28,8 +35,6 @@ export function MyProfileScreen() {
       });
     return () => { cancelled = true; };
   }, []);
-
-  const photos: Array<{ url: string; caption: string }> = [];
   const activePhoto = photos[activePhotoIndex];
 
   const nextPhoto = () => {

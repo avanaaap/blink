@@ -4,6 +4,7 @@ import { BlinkLogo } from './BlinkLogo';
 import { ChevronRight, ChevronLeft } from 'lucide-react';
 import { APP_ROUTES } from '../../lib/routes';
 import { updateMyProfile } from '../../lib/api/profile-api';
+import { uploadPhoto, deletePhoto } from '../../lib/api/photo-api';
 import type { Profile } from '../../lib/types';
 
 export function PreferencesScreen() {
@@ -37,7 +38,7 @@ export function PreferencesScreen() {
     wantsKids: '',
 
     // Photos
-    photos: [] as { url: string; caption: string }[],
+    photos: [] as { file?: File; url: string; caption: string; uploaded?: boolean; photoId?: string }[],
   });
 
   const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -47,7 +48,7 @@ export function PreferencesScreen() {
       const url = URL.createObjectURL(file);
       setPreferences(prev => ({
         ...prev,
-        photos: [...prev.photos, { url, caption: '' }]
+        photos: [...prev.photos, { file, url, caption: '', uploaded: false }]
       }));
     }
   };
@@ -60,12 +61,33 @@ export function PreferencesScreen() {
     });
   };
 
-  const handleRemovePhoto = (index: number) => {
+  const handleRemovePhoto = async (index: number) => {
+    const photo = preferences.photos[index];
+    if (photo.photoId) {
+      try {
+        await deletePhoto(photo.photoId);
+      } catch (e) {
+        console.error('Failed to delete photo:', e);
+      }
+    }
     setPreferences(prev => {
       const newPhotos = [...prev.photos];
       newPhotos.splice(index, 1);
       return { ...prev, photos: newPhotos };
     });
+  };
+
+  const uploadPendingPhotos = async () => {
+    for (let i = 0; i < preferences.photos.length; i++) {
+      const photo = preferences.photos[i];
+      if (!photo.uploaded && photo.file) {
+        try {
+          await uploadPhoto(photo.file, i, photo.caption);
+        } catch (e) {
+          console.error(`Failed to upload photo ${i}:`, e);
+        }
+      }
+    }
   };
 
   const buildProfilePayload = (): Partial<Profile> => ({
@@ -91,6 +113,7 @@ export function PreferencesScreen() {
     setSaving(true);
     try {
       await updateMyProfile(buildProfilePayload());
+      await uploadPendingPhotos();
     } catch (e) {
       console.error('Failed to save profile:', e);
     }
@@ -137,6 +160,7 @@ export function PreferencesScreen() {
     setSaving(true);
     try {
       await updateMyProfile(buildProfilePayload());
+      await uploadPendingPhotos();
     } catch (e) {
       console.error('Failed to save profile:', e);
     }
