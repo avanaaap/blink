@@ -127,10 +127,10 @@ export function VideoCallScreen() {
   const endCall = useCallback(async () => {
     await leaveCall();
     if (unlockLevel >= 4) {
-      navigate(`${APP_ROUTES.connection}?callType=video&unlockLevel=${unlockLevel}`);
+      navigate(`${APP_ROUTES.connection}?matchId=${matchId}&callType=video&unlockLevel=${unlockLevel}`);
     } else {
       navigate(
-        `${APP_ROUTES.rating}?unlockLevel=${unlockLevel}&callType=video`,
+        `${APP_ROUTES.rating}?matchId=${matchId}&unlockLevel=${unlockLevel}&callType=video`,
       );
     }
   }, [navigate, unlockLevel]);
