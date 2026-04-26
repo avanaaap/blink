@@ -1,10 +1,12 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { BlinkLogo } from './BlinkLogo';
-import { Settings, LogOut, MessageCircle, Phone, Video, Flag } from 'lucide-react';
+import { Settings, LogOut, MessageCircle, Phone, Video, Flag, PhoneOff, Loader2 } from 'lucide-react';
 import { APP_ROUTES } from '../../lib/routes';
 import { Button } from '../../components/Button';
 import { getTodayMatch } from '../../lib/api/match-api';
+import { createCallInvite, getPendingInvite, respondToInvite, checkInviteStatus } from '../../lib/api/call-api';
+import type { CallInvite } from '../../lib/api/call-api';
 import { ReportModal } from '../../components/ReportModal';
 import type { MatchDetail } from '../../lib/types';
 
@@ -17,6 +19,13 @@ export function DashboardScreen() {
   const [showReportModal, setShowReportModal] = useState(false);
   const [showVoiceUnlockGlow, setShowVoiceUnlockGlow] = useState(false);
   const [showVideoUnlockGlow, setShowVideoUnlockGlow] = useState(false);
+
+  // Call invite state
+  const [outgoingInvite, setOutgoingInvite] = useState<CallInvite | null>(null);
+  const [incomingInvite, setIncomingInvite] = useState<CallInvite | null>(null);
+  const [ringingMode, setRingingMode] = useState<'voice' | 'video' | null>(null);
+  const outgoingPollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const incomingPollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const unlockLevel = match?.unlock_level ?? 0;
   const voiceUnlocked = unlockLevel >= 2;
@@ -51,6 +60,95 @@ export function DashboardScreen() {
     const timer = setTimeout(() => setShowVideoUnlockGlow(false), 2200);
     return () => clearTimeout(timer);
   }, [videoUnlocked]);
+
+  // Poll for incoming call invites
+  useEffect(() => {
+    if (!match) return;
+
+    const poll = async () => {
+      try {
+        const invite = await getPendingInvite();
+        if (invite && invite.status === 'pending') {
+          setIncomingInvite(invite);
+        }
+      } catch {
+        // ignore polling errors
+      }
+    };
+
+    void poll();
+    incomingPollRef.current = setInterval(poll, 3000);
+    return () => {
+      if (incomingPollRef.current) clearInterval(incomingPollRef.current);
+    };
+  }, [match]);
+
+  // Poll for outgoing invite status
+  useEffect(() => {
+    if (!outgoingInvite) return;
+
+    const poll = async () => {
+      try {
+        const updated = await checkInviteStatus(outgoingInvite.id);
+        if (updated.status === 'accepted') {
+          cancelRinging();
+          const route = outgoingInvite.mode === 'video' ? APP_ROUTES.videoCall : APP_ROUTES.voiceCall;
+          navigate(`${route}?matchId=${outgoingInvite.match_id}&unlockLevel=${unlockLevel}`);
+        } else if (updated.status === 'declined' || updated.status === 'expired') {
+          cancelRinging();
+        }
+      } catch {
+        // ignore polling errors
+      }
+    };
+
+    outgoingPollRef.current = setInterval(poll, 2000);
+    return () => {
+      if (outgoingPollRef.current) clearInterval(outgoingPollRef.current);
+    };
+  }, [outgoingInvite, navigate, unlockLevel]);
+
+  const startCall = useCallback(async (mode: 'voice' | 'video') => {
+    if (!match) return;
+    setRingingMode(mode);
+    try {
+      const invite = await createCallInvite(match.id, mode);
+      setOutgoingInvite(invite);
+    } catch {
+      setRingingMode(null);
+    }
+  }, [match]);
+
+  const cancelRinging = useCallback(() => {
+    setRingingMode(null);
+    setOutgoingInvite(null);
+    if (outgoingPollRef.current) {
+      clearInterval(outgoingPollRef.current);
+      outgoingPollRef.current = null;
+    }
+  }, []);
+
+  const acceptIncoming = useCallback(async () => {
+    if (!incomingInvite) return;
+    try {
+      await respondToInvite(incomingInvite.id, 'accept');
+      const route = incomingInvite.mode === 'video' ? APP_ROUTES.videoCall : APP_ROUTES.voiceCall;
+      setIncomingInvite(null);
+      navigate(`${route}?matchId=${incomingInvite.match_id}&unlockLevel=${unlockLevel}`);
+    } catch {
+      setIncomingInvite(null);
+    }
+  }, [incomingInvite, navigate, unlockLevel]);
+
+  const declineIncoming = useCallback(async () => {
+    if (!incomingInvite) return;
+    try {
+      await respondToInvite(incomingInvite.id, 'decline');
+    } catch {
+      // ignore
+    }
+    setIncomingInvite(null);
+  }, [incomingInvite]);
 
   return (
     <div className="min-h-screen bg-white">
@@ -152,7 +250,7 @@ export function DashboardScreen() {
                     <span className="text-[11px] text-white/90">Available</span>
                   </button>
                   <button
-                    onClick={() => voiceUnlocked && navigate(`${APP_ROUTES.voiceCall}?matchId=${match.id}&unlockLevel=${unlockLevel}`)}
+                    onClick={() => voiceUnlocked && startCall('voice')}
                     disabled={!voiceUnlocked}
                     className={[
                       'flex w-full items-center justify-between rounded-lg border px-3 py-1.5 text-left transition-colors',
@@ -168,7 +266,7 @@ export function DashboardScreen() {
                     </span>
                   </button>
                   <button
-                    onClick={() => videoUnlocked && navigate(`${APP_ROUTES.videoCall}?matchId=${match.id}&unlockLevel=${unlockLevel}`)}
+                    onClick={() => videoUnlocked && startCall('video')}
                     disabled={!videoUnlocked}
                     className={[
                       'flex w-full items-center justify-between rounded-lg border px-3 py-1.5 text-left transition-colors',
@@ -208,6 +306,56 @@ export function DashboardScreen() {
           </div>
         )}
       </div>
+
+      {/* Outgoing call (ringing) overlay */}
+      {ringingMode && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="bg-white rounded-3xl p-8 max-w-sm w-full mx-6 text-center">
+            <div className="w-20 h-20 bg-[#4A3B32] rounded-full flex items-center justify-center mx-auto mb-6 animate-pulse">
+              {ringingMode === 'video' ? <Video size={36} className="text-white" /> : <Phone size={36} className="text-white" />}
+            </div>
+            <h2 className="text-2xl mb-2">Calling {match?.partner_name}...</h2>
+            <p className="text-neutral-600 mb-6">Waiting for them to pick up</p>
+            <div className="flex items-center justify-center gap-2 mb-6">
+              <Loader2 size={16} className="animate-spin text-neutral-400" />
+              <span className="text-sm text-neutral-500">Ringing</span>
+            </div>
+            <button
+              onClick={cancelRinging}
+              className="w-14 h-14 bg-red-500 hover:bg-red-600 rounded-full flex items-center justify-center mx-auto transition-colors"
+            >
+              <PhoneOff size={24} className="text-white" />
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Incoming call modal */}
+      {incomingInvite && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="bg-white rounded-3xl p-8 max-w-sm w-full mx-6 text-center">
+            <div className="w-20 h-20 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-6 animate-pulse">
+              {incomingInvite.mode === 'video' ? <Video size={36} className="text-white" /> : <Phone size={36} className="text-white" />}
+            </div>
+            <h2 className="text-2xl mb-2">Incoming {incomingInvite.mode === 'video' ? 'Video' : 'Voice'} Call</h2>
+            <p className="text-neutral-600 mb-8">{match?.partner_name} is calling you</p>
+            <div className="flex justify-center gap-6">
+              <button
+                onClick={declineIncoming}
+                className="w-14 h-14 bg-red-500 hover:bg-red-600 rounded-full flex items-center justify-center transition-colors"
+              >
+                <PhoneOff size={24} className="text-white" />
+              </button>
+              <button
+                onClick={acceptIncoming}
+                className="w-14 h-14 bg-green-500 hover:bg-green-600 rounded-full flex items-center justify-center transition-colors"
+              >
+                <Phone size={24} className="text-white" />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <ReportModal
         isOpen={showReportModal}

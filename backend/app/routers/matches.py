@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException
 
 from app.core.auth import get_current_user
 from app.core.supabase import get_supabase
-from app.models.match import MatchDetail, UnlockUpdate
+from app.models.match import MatchDetail, PartnerReveal, UnlockUpdate
 from app.services.matching import create_match_for_user
 
 router = APIRouter(prefix="/api/matches", tags=["matches"])
@@ -121,4 +121,57 @@ async def update_unlock_level(
         shared_interests=match.get("shared_interests", []),
         status=match["status"],
         unlock_level=payload.unlock_level,
+    )
+
+
+@router.get("/{match_id}/reveal", response_model=PartnerReveal)
+async def get_partner_reveal(
+    match_id: str,
+    user: dict = Depends(get_current_user),
+):
+    """Return partner's full profile + photos. Only available at unlock_level >= 4."""
+    sb = get_supabase()
+    uid = user["id"]
+
+    match_row = (
+        sb.table("matches").select("*").eq("id", match_id).single().execute()
+    )
+    if not match_row.data:
+        raise HTTPException(status_code=404, detail="Match not found")
+
+    match = match_row.data
+    if uid not in (match["user_a"], match["user_b"]):
+        raise HTTPException(status_code=403, detail="Not your match")
+
+    if match.get("unlock_level", 0) < 4:
+        raise HTTPException(status_code=403, detail="Profile not yet revealed")
+
+    partner_id = match["user_b"] if match["user_a"] == uid else match["user_a"]
+
+    partner = (
+        sb.table("profiles")
+        .select("name, age, interests")
+        .eq("id", partner_id)
+        .single()
+        .execute()
+    )
+    partner_data = partner.data or {}
+
+    photos = (
+        sb.table("photos")
+        .select("url, caption")
+        .eq("user_id", partner_id)
+        .order("sort_order")
+        .execute()
+    )
+
+    return PartnerReveal(
+        name=partner_data.get("name", "Unknown"),
+        age=partner_data.get("age"),
+        interests=partner_data.get("interests", []),
+        compatibility_score=match.get("compatibility_score"),
+        photos=[
+            {"url": p["url"], "caption": p.get("caption")}
+            for p in (photos.data or [])
+        ],
     )

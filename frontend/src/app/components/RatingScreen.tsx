@@ -37,7 +37,7 @@ export function RatingScreen() {
         navigate(APP_ROUTES.match);
       } else if (result.status === 'advanced') {
         if (result.unlock_level >= 4) {
-          navigate(APP_ROUTES.reveal);
+          navigate(`${APP_ROUTES.reveal}?matchId=${matchId}`);
         } else {
           navigate(APP_ROUTES.match);
         }

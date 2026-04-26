@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.routers import agora, health, matching, matches, messages, photos, profiles, ratings, worldid
+from app.routers import agora, call_invites, health, matching, matches, messages, photos, profiles, ratings, worldid
 
 app = FastAPI(title="Blink API", version="0.1.0")
 
@@ -22,3 +22,4 @@ app.include_router(ratings.router)
 app.include_router(photos.router)
 app.include_router(matching.router)
 app.include_router(agora.router)
+app.include_router(call_invites.router)

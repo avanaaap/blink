@@ -29,3 +29,15 @@ export async function updateUnlockLevel(matchId: string, unlockLevel: number): P
     body: JSON.stringify({ unlock_level: unlockLevel }),
   });
 }
+
+export type PartnerReveal = {
+  name: string;
+  age: number | null;
+  interests: string[];
+  compatibility_score: number | null;
+  photos: Array<{ url: string; caption: string | null }>;
+};
+
+export async function getPartnerReveal(matchId: string): Promise<PartnerReveal> {
+  return apiRequest<PartnerReveal>(`/api/matches/${matchId}/reveal`);
+}
