@@ -100,14 +100,14 @@ export function WelcomeScreen() {
                     <p className="text-neutral-700 font-medium">
                       Scan with World App
                     </p>
-                    <div className="bg-white p-4 rounded-2xl shadow-lg border border-neutral-200">
+                    <a href={connectUrl} className="bg-white p-4 rounded-2xl shadow-lg border border-neutral-200 block">
                       <QRCodeSVG
                         value={connectUrl}
                         size={240}
                         level="M"
                         includeMargin
                       />
-                    </div>
+                    </a>
                     <p className="text-sm text-neutral-500 animate-pulse">
                       Waiting for verification...
                     </p>
