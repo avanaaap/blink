@@ -1,13 +1,19 @@
 """
-Blink Daily Matching Algorithm
-===============================
+Blink AI-Powered Matching Algorithm
+=====================================
 
-Nightly cron job that:
+Uses Google Gemini to produce deep compatibility analysis from users'
+free-response answers (interests, relationship meaning, time with partner,
+conflict style) combined with deterministic scoring for structured fields.
+
+Pipeline:
   1. Filters eligible user pairs (verified, unpaused, unblocked, compatible prefs)
-  2. Computes a two-tower compatibility score (0-100)
-  3. Applies a conflict-style multiplicative modifier
-  4. Greedily assigns one match per user per day
-  5. Writes results to the ``matches`` table
+  2. Computes a deterministic base score from structured fields (0-40)
+  3. Calls Gemini to score free-response compatibility (0-60) and extract
+     shared themes
+  4. Combines into a final 0-100 score
+  5. Greedily assigns one match per user per day
+  6. Writes results to the ``matches`` table
 
 Also exposes stage-decision logic: after each conversation phase
 (text → call → video) both users choose *move forward*, *not sure*,
@@ -17,26 +23,29 @@ the match advances to the next unlock level; otherwise it ends.
 
 from __future__ import annotations
 
+import json
 import logging
 from datetime import datetime, timezone
 from typing import Any
 
+import google.generativeai as genai
+
+from app.core.config import settings
 from app.core.supabase import get_supabase
 
 logger = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
-# Scoring weights (Step 2)
+# Gemini setup
 # ---------------------------------------------------------------------------
-INTEREST_MAX = 30
-INTEREST_TOTAL = 3
 
-RELATIONSHIP_MEANING_MAX = 20
-RELATIONSHIP_MEANING_TOTAL = 6
+def _get_gemini_model() -> genai.GenerativeModel:
+    genai.configure(api_key=settings.gemini_api_key)
+    return genai.GenerativeModel("gemini-2.0-flash")
 
-TIME_WITH_PARTNER_MAX = 15
-TIME_WITH_PARTNER_TOTAL = 4
-
+# ---------------------------------------------------------------------------
+# Scoring weights — deterministic portion (max 40 pts)
+# ---------------------------------------------------------------------------
 SPENDING_MATCH_SCORE = 10
 
 KIDS_EXACT_MATCH_SCORE = 10
@@ -64,22 +73,6 @@ GENDER_TO_INTERESTED_IN: dict[str, str] = {
 }
 
 # ---------------------------------------------------------------------------
-# Conflict-style modifier matrix (Step 3)
-# Keys are the Postgres enum values stored in ``profiles.conflict_style``.
-# ---------------------------------------------------------------------------
-CONFLICT_MODIFIER: dict[tuple[str, str], float] = {
-    ("Talk it out right away", "Talk it out right away"): 1.10,
-    ("Talk it out right away", "Take space, then come back to it"): 1.00,
-    ("Talk it out right away", "Avoid it / keep the peace"): 0.75,
-    ("Take space, then come back to it", "Talk it out right away"): 1.00,
-    ("Take space, then come back to it", "Take space, then come back to it"): 1.05,
-    ("Take space, then come back to it", "Avoid it / keep the peace"): 0.80,
-    ("Avoid it / keep the peace", "Talk it out right away"): 0.75,
-    ("Avoid it / keep the peace", "Take space, then come back to it"): 0.80,
-    ("Avoid it / keep the peace", "Avoid it / keep the peace"): 0.90,
-}
-
-# ---------------------------------------------------------------------------
 # Compatibility helpers
 # ---------------------------------------------------------------------------
 KIDS_INCOMPATIBLE: set[frozenset[str]] = {
@@ -92,6 +85,20 @@ RELATIONSHIP_INCOMPATIBLE: set[frozenset[str]] = {
 }
 
 STAGE_DECISION_BLOCK = "dont_move_forward"
+
+# Max points from deterministic scoring (excluding gender preference)
+_DETERMINISTIC_MAX = (
+    SPENDING_MATCH_SCORE
+    + KIDS_EXACT_MATCH_SCORE
+    + RELATIONSHIP_TYPE_MATCH_SCORE
+    + DEBT_MATCH_SCORE
+    + ISLAND_MATCH_SCORE
+    + INSTRUMENT_MATCH_SCORE
+)  # 45
+
+# We'll scale deterministic to 40 pts max, Gemini to 60 pts max
+DETERMINISTIC_WEIGHT = 40
+GEMINI_WEIGHT = 60
 
 
 # ===================================================================== #
@@ -147,21 +154,13 @@ def _fetch_historical_pairs(sb: Any) -> set[frozenset[str]]:
 # --- pair-level eligibility checks ---
 
 def _gender_preference_score(a: dict[str, Any], b: dict[str, Any]) -> int:
-    """Score how well each user's gender matches the other's interested_in.
-
-    Returns 0-GENDER_PREFERENCE_SCORE.  Full points when both users'
-    gender identity is in the other's interested_in list.  Half points
-    when only one direction matches.  Zero when neither matches or
-    data is missing.
-    """
     a_gender = a.get("gender")
     b_gender = b.get("gender")
     a_interested = set(a.get("interested_in") or [])
     b_interested = set(b.get("interested_in") or [])
 
-    # If either user has no gender or no interested_in, skip (allow match)
     if not a_gender or not b_gender or not a_interested or not b_interested:
-        return GENDER_PREFERENCE_SCORE  # neutral — don't penalise missing data
+        return GENDER_PREFERENCE_SCORE
 
     a_maps_to = GENDER_TO_INTERESTED_IN.get(a_gender)
     b_maps_to = GENDER_TO_INTERESTED_IN.get(b_gender)
@@ -230,32 +229,11 @@ def _is_eligible_pair(
 
 
 # ===================================================================== #
-#  Step 2 — Two-Tower Compatibility Score                               #
+#  Step 2 — Deterministic Structured-Field Score                        #
 # ===================================================================== #
 
-def _array_overlap_count(a_vals: list[str] | None, b_vals: list[str] | None) -> int:
-    if not a_vals or not b_vals:
-        return 0
-    return len(set(a_vals) & set(b_vals))
-
-
-def _compute_base_score(a: dict[str, Any], b: dict[str, Any]) -> tuple[float, list[str]]:
-    """Return ``(base_score, shared_interests_list)``."""
-    # Interest overlap (30 pts max)
-    shared = sorted(set(a.get("interests") or []) & set(b.get("interests") or []))
-    interest_score = (len(shared) / INTEREST_TOTAL) * INTEREST_MAX
-
-    # Relationship meaning overlap (20 pts max)
-    rm_overlap = _array_overlap_count(
-        a.get("relationship_meaning"), b.get("relationship_meaning")
-    )
-    meaning_score = (rm_overlap / RELATIONSHIP_MEANING_TOTAL) * RELATIONSHIP_MEANING_MAX
-
-    # Time with partner overlap (15 pts max)
-    tp_overlap = _array_overlap_count(
-        a.get("time_with_partner"), b.get("time_with_partner")
-    )
-    time_score = (tp_overlap / TIME_WITH_PARTNER_TOTAL) * TIME_WITH_PARTNER_MAX
+def _compute_deterministic_score(a: dict[str, Any], b: dict[str, Any]) -> float:
+    """Score structured (non-free-response) fields. Returns raw points."""
 
     # Spending habits exact match (10 pts)
     spending_score = (
@@ -322,31 +300,130 @@ def _compute_base_score(a: dict[str, Any], b: dict[str, Any]) -> tuple[float, li
     # Gender preference (15 pts max — soft score, not hard filter)
     gender_score = _gender_preference_score(a, b)
 
-    base = (
-        interest_score + meaning_score + time_score + spending_score
-        + kids_score + rel_score + debt_score + island_score + music_score
+    raw = (
+        spending_score + kids_score + rel_score
+        + debt_score + island_score + music_score
         + gender_score
     )
-    return base, shared
+    return raw
 
 
 # ===================================================================== #
-#  Step 3 — Conflict Style Modifier                                     #
+#  Step 3 — Gemini AI Compatibility Score                               #
 # ===================================================================== #
 
-def _apply_conflict_modifier(base_score: float, a: dict[str, Any], b: dict[str, Any]) -> int:
-    a_style = a.get("conflict_style")
-    b_style = b.get("conflict_style")
-    modifier = (
-        CONFLICT_MODIFIER.get((a_style, b_style), 1.0)
-        if a_style and b_style
-        else 1.0
-    )
-    return min(round(base_score * modifier), 100)
+def _build_gemini_prompt(a: dict[str, Any], b: dict[str, Any]) -> str:
+    """Build a prompt for Gemini to evaluate free-response compatibility."""
+    return f"""You are an expert relationship compatibility analyst for a dating app called Blink.
+
+Analyze the following two users' free-response answers and determine their compatibility.
+
+**User A:**
+- Interests: "{a.get('interests', '')}"
+- What a relationship means to them: "{a.get('relationship_meaning', '')}"
+- How they spend time with a partner: "{a.get('time_with_partner', '')}"
+- How they handle conflict: "{a.get('conflict_style', '')}"
+
+**User B:**
+- Interests: "{b.get('interests', '')}"
+- What a relationship means to them: "{b.get('relationship_meaning', '')}"
+- How they spend time with a partner: "{b.get('time_with_partner', '')}"
+- How they handle conflict: "{b.get('conflict_style', '')}"
+
+Evaluate their compatibility across these dimensions:
+1. **Interest alignment** (0-20): How much do their interests overlap or complement each other?
+2. **Relationship values** (0-20): How aligned are their views on what a relationship means?
+3. **Lifestyle compatibility** (0-10): How well do their approaches to spending time together mesh?
+4. **Conflict resolution** (0-10): How compatible are their conflict styles?
+
+Also identify 2-4 shared themes or talking points they could bond over.
+
+Respond ONLY with valid JSON (no markdown, no code fences):
+{{"interest_score": <0-20>, "values_score": <0-20>, "lifestyle_score": <0-10>, "conflict_score": <0-10>, "total": <0-60>, "shared_themes": ["theme1", "theme2"], "reasoning": "<one sentence>"}}"""
+
+
+async def _gemini_score_pair(
+    model: genai.GenerativeModel,
+    a: dict[str, Any],
+    b: dict[str, Any],
+) -> tuple[int, list[str]]:
+    """Call Gemini to score free-response compatibility.
+
+    Returns ``(ai_score_0_to_60, shared_themes_list)``.
+    Falls back to a heuristic score if Gemini is unavailable.
+    """
+    # If both users have no free-response data, return neutral score
+    has_text_a = any(a.get(f) for f in ("interests", "relationship_meaning", "time_with_partner", "conflict_style"))
+    has_text_b = any(b.get(f) for f in ("interests", "relationship_meaning", "time_with_partner", "conflict_style"))
+    if not has_text_a and not has_text_b:
+        return 30, []  # neutral midpoint
+
+    prompt = _build_gemini_prompt(a, b)
+
+    try:
+        response = model.generate_content(prompt)
+        text = response.text.strip()
+        # Strip markdown code fences if present
+        if text.startswith("```"):
+            text = text.split("\n", 1)[1] if "\n" in text else text[3:]
+            if text.endswith("```"):
+                text = text[:-3]
+            text = text.strip()
+
+        data = json.loads(text)
+        total = min(max(int(data.get("total", 30)), 0), 60)
+        themes = data.get("shared_themes", [])
+        if not isinstance(themes, list):
+            themes = []
+        return total, [str(t) for t in themes[:4]]
+    except Exception as exc:
+        logger.warning("Gemini scoring failed, using fallback: %s", exc)
+        return _fallback_text_score(a, b)
+
+
+def _fallback_text_score(
+    a: dict[str, Any], b: dict[str, Any]
+) -> tuple[int, list[str]]:
+    """Simple keyword-overlap heuristic when Gemini is unavailable."""
+    fields = ("interests", "relationship_meaning", "time_with_partner", "conflict_style")
+    a_words: set[str] = set()
+    b_words: set[str] = set()
+    for f in fields:
+        a_words.update(w.lower().strip() for w in (a.get(f) or "").replace(",", " ").split() if len(w) > 2)
+        b_words.update(w.lower().strip() for w in (b.get(f) or "").replace(",", " ").split() if len(w) > 2)
+
+    if not a_words or not b_words:
+        return 30, []
+
+    overlap = a_words & b_words
+    ratio = len(overlap) / max(len(a_words | b_words), 1)
+    score = min(round(ratio * 60), 60)
+    return score, sorted(overlap)[:4]
 
 
 # ===================================================================== #
-#  Step 4 — Greedy Match Assignment & DB Write                          #
+#  Step 4 — Combined Score                                              #
+# ===================================================================== #
+
+async def _compute_final_score(
+    model: genai.GenerativeModel,
+    a: dict[str, Any],
+    b: dict[str, Any],
+) -> tuple[int, list[str]]:
+    """Return ``(final_score_0_to_100, shared_themes)``."""
+    det_raw = _compute_deterministic_score(a, b)
+    # Normalize deterministic portion to DETERMINISTIC_WEIGHT (40 pts max)
+    det_max = _DETERMINISTIC_MAX + GENDER_PREFERENCE_SCORE  # 60
+    det_scaled = (det_raw / det_max) * DETERMINISTIC_WEIGHT if det_max else 0
+
+    ai_score, themes = await _gemini_score_pair(model, a, b)
+
+    final = min(round(det_scaled + ai_score), 100)
+    return final, themes
+
+
+# ===================================================================== #
+#  Step 5 — Greedy Match Assignment & DB Write                          #
 # ===================================================================== #
 
 def _order_pair(id_a: str, id_b: str) -> tuple[str, str]:
@@ -378,6 +455,8 @@ async def run_daily_matching() -> list[dict[str, Any]]:
         logger.info("Not enough eligible profiles for matching.")
         return []
 
+    model = _get_gemini_model()
+
     # Score every eligible pair
     scored_pairs: list[tuple[str, str, int, list[str]]] = []
     seen: set[frozenset[str]] = set()
@@ -391,10 +470,9 @@ async def run_daily_matching() -> list[dict[str, Any]]:
                 continue
             seen.add(pair_key)
 
-            base_score, shared_interests = _compute_base_score(a, b)
-            final_score = _apply_conflict_modifier(base_score, a, b)
+            final_score, shared_themes = await _compute_final_score(model, a, b)
             user_a, user_b = _order_pair(a["id"], b["id"])
-            scored_pairs.append((user_a, user_b, final_score, shared_interests))
+            scored_pairs.append((user_a, user_b, final_score, shared_themes))
 
     # Greedy: highest compatibility first, one match per user
     scored_pairs.sort(key=lambda x: x[2], reverse=True)
@@ -437,12 +515,6 @@ async def run_daily_matching() -> list[dict[str, Any]]:
 # ===================================================================== #
 #  Stage Decision Logic                                                 #
 # ===================================================================== #
-#  After each conversation phase (text → call → video) both users pick  #
-#  one of: move_forward | not_sure | dont_move_forward.                 #
-#                                                                       #
-#  • If EITHER user says "dont_move_forward" → match is unmatched.      #
-#  • Otherwise (both say move_forward or not_sure) → unlock_level++.    #
-# ===================================================================== #
 
 MAX_UNLOCK_LEVEL = 4  # 0→chat, 1→voice, 2→video, 3→revealed, 4→connected
 
@@ -458,7 +530,6 @@ async def submit_stage_decision(
     """
     sb = get_supabase()
 
-    # Verify the user belongs to this match
     match_row = (
         sb.table("matches")
         .select("id, user_a, user_b, unlock_level, status")
@@ -473,7 +544,6 @@ async def submit_stage_decision(
     if user_id not in (match["user_a"], match["user_b"]):
         raise PermissionError("User is not part of this match")
 
-    # Upsert this user's decision (one per user per match per level)
     sb.table("stage_decisions").upsert(
         {
             "match_id": match_id,
@@ -484,7 +554,6 @@ async def submit_stage_decision(
         on_conflict="match_id,user_id,unlock_level",
     ).execute()
 
-    # If this user chose dont_move_forward, immediately unmatch
     if decision == STAGE_DECISION_BLOCK:
         sb.table("matches").update(
             {"status": "unmatched"}
@@ -501,7 +570,6 @@ async def submit_stage_decision(
             "unlock_level": match["unlock_level"],
         }
 
-    # Check if both users have decided for the current level
     decisions = (
         sb.table("stage_decisions")
         .select("user_id, decision")
@@ -516,7 +584,6 @@ async def submit_stage_decision(
             "unlock_level": match["unlock_level"],
         }
 
-    # Both decisions are in — resolve
     any_block = any(
         r["decision"] == STAGE_DECISION_BLOCK for r in rows
     )
@@ -536,7 +603,6 @@ async def submit_stage_decision(
             "unlock_level": match["unlock_level"],
         }
 
-    # Both chose move_forward or not_sure → advance
     new_level = min(
         match["unlock_level"] + 1, MAX_UNLOCK_LEVEL
     )
@@ -560,7 +626,7 @@ async def submit_stage_decision(
 #  On-Demand Match Creation (per-user)                                  #
 # ===================================================================== #
 
-def create_match_for_user(sb: Any, user_id: str) -> dict[str, Any] | None:
+async def create_match_for_user(sb: Any, user_id: str) -> dict[str, Any] | None:
     """Find and create the best match for a single user on-demand.
 
     Called when a user visits the dashboard and has no match for today.
@@ -568,7 +634,6 @@ def create_match_for_user(sb: Any, user_id: str) -> dict[str, Any] | None:
     """
     today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
 
-    # Check if user already has an active match today (skip unmatched)
     existing = (
         sb.table("matches")
         .select("id")
@@ -581,7 +646,6 @@ def create_match_for_user(sb: Any, user_id: str) -> dict[str, Any] | None:
     if existing.data:
         return None
 
-    # Get user's profile
     user_result = (
         sb.table("profiles").select("*").eq("id", user_id).single().execute()
     )
@@ -589,11 +653,12 @@ def create_match_for_user(sb: Any, user_id: str) -> dict[str, Any] | None:
         return None
     user = user_result.data
 
-    # Get all eligible candidates
     profiles = _fetch_eligible_profiles(sb)
     blocks = _fetch_blocks(sb)
     already_matched = _fetch_todays_matched_users(sb, today)
     historical_pairs = _fetch_historical_pairs(sb)
+
+    model = _get_gemini_model()
 
     best_candidate = None
     best_score = -1
@@ -603,13 +668,12 @@ def create_match_for_user(sb: Any, user_id: str) -> dict[str, Any] | None:
         if not _is_eligible_pair(user, candidate, blocks, already_matched, historical_pairs):
             continue
 
-        base_score, shared_interests = _compute_base_score(user, candidate)
-        final_score = _apply_conflict_modifier(base_score, user, candidate)
+        final_score, shared_themes = await _compute_final_score(model, user, candidate)
 
         if final_score > best_score:
             best_candidate = candidate
             best_score = final_score
-            best_shared = shared_interests
+            best_shared = shared_themes
 
     if best_candidate is None:
         return None
@@ -633,6 +697,6 @@ def create_match_for_user(sb: Any, user_id: str) -> dict[str, Any] | None:
         return None
 
     logger.info(
-        "On-demand match created for user %s: score=%d", user_id, best_score
+        "On-demand AI match created for user %s: score=%d", user_id, best_score
     )
     return match_row.data[0]

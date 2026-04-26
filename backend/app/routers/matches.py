@@ -23,23 +23,13 @@ def _build_match_detail(sb, match: dict, uid: str) -> MatchDetail:
     )
 
     partner_data = partner.data or {}
-    partner_interests = partner_data.get("interests", [])
-    user_profile = (
-        sb.table("profiles")
-        .select("interests")
-        .eq("id", uid)
-        .single()
-        .execute()
-    )
-    user_interests = (user_profile.data or {}).get("interests", [])
-    shared = list(set(partner_interests) & set(user_interests))
 
     return MatchDetail(
         id=match["id"],
         partner_name=partner_data.get("name", "Unknown"),
         partner_age=partner_data.get("age"),
         compatibility_score=match.get("compatibility_score"),
-        shared_interests=shared or match.get("shared_interests", []),
+        shared_interests=match.get("shared_interests", []),
         status=match["status"],
         unlock_level=match.get("unlock_level", 0),
     )
@@ -66,7 +56,7 @@ async def get_today_match(user: dict = Depends(get_current_user)):
         return _build_match_detail(sb, result.data[0], uid)
 
     # No active match — run the matching algorithm on demand
-    new_match = create_match_for_user(sb, uid)
+    new_match = await create_match_for_user(sb, uid)
     if not new_match:
         return None
 
@@ -215,7 +205,7 @@ async def get_partner_reveal(
     return PartnerReveal(
         name=partner_data.get("name", "Unknown"),
         age=partner_data.get("age"),
-        interests=partner_data.get("interests", []),
+        interests=partner_data.get("interests", ""),
         compatibility_score=match.get("compatibility_score"),
         photos=[
             {"url": p["url"], "caption": p.get("caption")}

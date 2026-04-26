@@ -3,7 +3,7 @@ export type MatchProfile = {
   age: number;
   location: string;
   bio: string;
-  interests: string[];
+  interests: string;
   compatibilityScore: number;
   photos: Array<{ url: string; caption: string }>;
 };
@@ -13,7 +13,7 @@ export const matchProfile: MatchProfile = {
   age: 28,
   location: "San Francisco, CA",
   bio: "Coffee enthusiast, amateur photographer, and weekend hiker. Always up for trying new restaurants or exploring hidden trails.",
-  interests: ["Travel", "Music", "Cooking", "Photography", "Hiking"],
+  interests: "Travel, Music, Cooking, Photography, Hiking",
   compatibilityScore: 85,
   photos: [
     {

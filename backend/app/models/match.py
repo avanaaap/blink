@@ -1,6 +1,6 @@
 from pydantic import BaseModel, Field
 
-from app.models.enums import InterestOption, MatchStatus
+from app.models.enums import MatchStatus
 
 
 class MatchResponse(BaseModel):
@@ -8,7 +8,7 @@ class MatchResponse(BaseModel):
     user_a: str
     user_b: str
     compatibility_score: int | None = None
-    shared_interests: list[InterestOption] = []
+    shared_interests: list[str] = []
     match_date: str
     status: MatchStatus = MatchStatus.PENDING
     unlock_level: int = 0
@@ -22,7 +22,7 @@ class MatchDetail(BaseModel):
     partner_name: str
     partner_age: int | None = None
     compatibility_score: int | None = None
-    shared_interests: list[InterestOption] = []
+    shared_interests: list[str] = []
     status: MatchStatus = MatchStatus.PENDING
     unlock_level: int = 0
 
@@ -41,6 +41,6 @@ class PartnerReveal(BaseModel):
 
     name: str
     age: int | None = None
-    interests: list[str] = []
+    interests: str = ""
     compatibility_score: int | None = None
     photos: list[PhotoOut] = []

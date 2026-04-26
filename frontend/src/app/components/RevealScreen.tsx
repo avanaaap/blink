@@ -158,19 +158,10 @@ export function RevealScreen() {
                   )}
                 </div>
 
-                {partner.interests.length > 0 && (
+                {partner.interests && (
                   <div className="rounded-2xl border border-neutral-200 p-4">
                     <h3 className="mb-3 text-base">Interests</h3>
-                    <div className="flex flex-wrap gap-2">
-                      {partner.interests.map(interest => (
-                        <span
-                          key={interest}
-                          className="rounded-full border border-neutral-300 bg-white px-3 py-1 text-xs text-neutral-700"
-                        >
-                          {interest}
-                        </span>
-                      ))}
-                    </div>
+                    <p className="text-sm text-neutral-700">{partner.interests}</p>
                   </div>
                 )}
 

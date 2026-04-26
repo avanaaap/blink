@@ -283,13 +283,9 @@ export function DashboardScreen() {
                 </div>
 
                 {/* Partner interests when revealed, otherwise shared interests */}
-                {profileRevealed && partnerReveal?.interests && partnerReveal.interests.length > 0 ? (
-                  <div className="flex flex-wrap gap-2 justify-center">
-                    {partnerReveal.interests.map(interest => (
-                      <span key={interest} className="px-4 py-2 bg-white border border-neutral-300 rounded-full text-sm">
-                        {interest}
-                      </span>
-                    ))}
+                {profileRevealed && partnerReveal?.interests ? (
+                  <div className="px-4 py-3 bg-white border border-neutral-200 rounded-xl text-sm text-neutral-700 text-center">
+                    {partnerReveal.interests}
                   </div>
                 ) : match.shared_interests.length > 0 && (
                   <div className="flex flex-wrap gap-2 justify-center">

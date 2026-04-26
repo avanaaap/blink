@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { BlinkLogo } from './BlinkLogo';
-import { ChevronRight, ChevronLeft, Loader2 } from 'lucide-react';
+import { ChevronRight, ChevronLeft, Loader2, Sparkles } from 'lucide-react';
 import { APP_ROUTES } from '../../lib/routes';
 import { getMyProfile, updateMyProfile } from '../../lib/api/profile-api';
 import { uploadPhoto, deletePhoto, listMyPhotos } from '../../lib/api/photo-api';
@@ -26,12 +26,14 @@ export function PreferencesScreen() {
     interestedIn: [] as string[],
     relationshipType: '',
     ageRange: [22, 35],
-    interests: [] as string[],
 
-    // Deep questions
-    relationshipMeaning: [] as string[],
-    timeWithPartner: [] as string[],
+    // Free-response fields (AI-powered matching)
+    interests: '',
+    relationshipMeaning: '',
+    timeWithPartner: '',
     conflictStyle: '',
+
+    // Deep questions (still multi-select)
     islandScenario: '',
     musicalInstrument: '',
 
@@ -63,9 +65,9 @@ export function PreferencesScreen() {
           interestedIn: profile.interested_in || [],
           relationshipType: profile.relationship_type || '',
           ageRange: [profile.age_range_min ?? 22, profile.age_range_max ?? 35],
-          interests: profile.interests || [],
-          relationshipMeaning: profile.relationship_meaning || [],
-          timeWithPartner: profile.time_with_partner || [],
+          interests: profile.interests || '',
+          relationshipMeaning: profile.relationship_meaning || '',
+          timeWithPartner: profile.time_with_partner || '',
           conflictStyle: profile.conflict_style || '',
           islandScenario: profile.island_scenario || '',
           musicalInstrument: profile.musical_instrument || '',
@@ -145,10 +147,10 @@ export function PreferencesScreen() {
     relationship_type: (preferences.relationshipType || undefined) as Profile['relationship_type'],
     age_range_min: preferences.ageRange[0],
     age_range_max: preferences.ageRange[1],
-    interests: preferences.interests as Profile['interests'],
-    relationship_meaning: preferences.relationshipMeaning as Profile['relationship_meaning'],
-    time_with_partner: preferences.timeWithPartner as Profile['time_with_partner'],
-    conflict_style: (preferences.conflictStyle || undefined) as Profile['conflict_style'],
+    interests: preferences.interests,
+    relationship_meaning: preferences.relationshipMeaning,
+    time_with_partner: preferences.timeWithPartner,
+    conflict_style: preferences.conflictStyle,
     island_scenario: (preferences.islandScenario || undefined) as Profile['island_scenario'],
     musical_instrument: (preferences.musicalInstrument || undefined) as Profile['musical_instrument'],
     sexuality: (preferences.sexuality || undefined) as Profile['sexuality'],
@@ -168,11 +170,6 @@ export function PreferencesScreen() {
     navigate(APP_ROUTES.match);
   };
 
-  const interestOptions = [
-    'Travel', 'Music', 'Art', 'Sports', 'Cooking', 'Reading',
-    'Technology', 'Fitness', 'Movies', 'Photography', 'Gaming', 'Nature'
-  ];
-
   const toggleArrayField = (field: keyof typeof preferences, value: string) => {
     const currentArray = preferences[field] as string[];
     setPreferences(prev => ({
@@ -190,11 +187,11 @@ export function PreferencesScreen() {
       case 1:
         return preferences.interestedIn.length > 0 && preferences.relationshipType;
       case 2:
-        return preferences.ageRange[0] < preferences.ageRange[1] && preferences.interests.length >= 3;
+        return preferences.ageRange[0] < preferences.ageRange[1] && preferences.interests.trim().length > 0;
       case 3:
-        return preferences.relationshipMeaning.length > 0 && preferences.timeWithPartner.length > 0;
+        return preferences.relationshipMeaning.trim().length > 0 && preferences.timeWithPartner.trim().length > 0;
       case 4:
-        return preferences.conflictStyle && preferences.islandScenario && preferences.musicalInstrument;
+        return preferences.conflictStyle.trim().length > 0 && preferences.islandScenario && preferences.musicalInstrument;
       case 5:
         return preferences.sexuality && preferences.spendingHabits && preferences.hasDebt && preferences.wantsKids;
       case 6:
@@ -410,22 +407,25 @@ export function PreferencesScreen() {
 
               <div>
                 <h2 className="text-xl mb-2">Your Interests</h2>
-                <p className="text-sm text-neutral-500 mb-4">Select at least 3</p>
-                <div className="grid grid-cols-3 gap-3">
-                  {interestOptions.map(interest => (
-                    <button
-                      key={interest}
-                      onClick={() => toggleArrayField('interests', interest)}
-                      className={`py-3 px-4 rounded-lg border-2 transition-colors ${
-                        preferences.interests.includes(interest)
-                          ? 'border-[#4A3B32] bg-neutral-50'
-                          : 'border-neutral-300 hover:border-neutral-400'
-                      }`}
-                    >
-                      {interest}
-                    </button>
-                  ))}
+                <div className="flex items-center gap-2 mb-2">
+                  <Sparkles size={16} className="text-[#D4A574]" />
+                  <p className="text-sm text-[#D4A574] font-medium">AI-powered matching</p>
                 </div>
+                <p className="text-sm text-neutral-500 mb-2">Describe your interests and hobbies in your own words.</p>
+                <p className="text-xs text-neutral-400 mb-4 italic">e.g. "Hiking, cooking Italian food, indie music, photography on weekends"</p>
+                <textarea
+                  value={preferences.interests}
+                  onChange={(e) => {
+                    if (e.target.value.length <= 150) {
+                      setPreferences({ ...preferences, interests: e.target.value });
+                    }
+                  }}
+                  placeholder="Tell us what you love doing..."
+                  maxLength={150}
+                  rows={3}
+                  className="w-full px-4 py-3 border-2 border-neutral-300 rounded-lg focus:outline-none focus:border-[#4A3B32] resize-none"
+                />
+                <p className="text-xs text-neutral-400 text-right mt-1">{preferences.interests.length}/150</p>
               </div>
             </>
           )}
@@ -434,42 +434,48 @@ export function PreferencesScreen() {
             <>
               <div>
                 <h2 className="text-xl mb-2">What does being in a relationship mean to you?</h2>
-                <p className="text-sm text-neutral-500 mb-4">Select all that apply</p>
-                <div className="flex flex-col gap-2">
-                  {['Emotional support', 'Quality time', 'Trust & connection', 'Shared experiences', 'Commitment', 'Physical affection'].map(option => (
-                    <button
-                      key={option}
-                      onClick={() => toggleArrayField('relationshipMeaning', option)}
-                      className={`py-3 px-4 rounded-lg border-2 text-left transition-colors ${
-                        preferences.relationshipMeaning.includes(option)
-                          ? 'border-[#4A3B32] bg-neutral-50'
-                          : 'border-neutral-300 hover:border-neutral-400'
-                      }`}
-                    >
-                      {option}
-                    </button>
-                  ))}
+                <div className="flex items-center gap-2 mb-2">
+                  <Sparkles size={16} className="text-[#D4A574]" />
+                  <p className="text-sm text-[#D4A574] font-medium">AI-powered matching</p>
                 </div>
+                <p className="text-sm text-neutral-500 mb-2">Share what matters most to you in a relationship.</p>
+                <p className="text-xs text-neutral-400 mb-4 italic">e.g. "Emotional support, trust, quality time together, shared adventures"</p>
+                <textarea
+                  value={preferences.relationshipMeaning}
+                  onChange={(e) => {
+                    if (e.target.value.length <= 150) {
+                      setPreferences({ ...preferences, relationshipMeaning: e.target.value });
+                    }
+                  }}
+                  placeholder="What does a great relationship look like to you?"
+                  maxLength={150}
+                  rows={3}
+                  className="w-full px-4 py-3 border-2 border-neutral-300 rounded-lg focus:outline-none focus:border-[#4A3B32] resize-none"
+                />
+                <p className="text-xs text-neutral-400 text-right mt-1">{preferences.relationshipMeaning.length}/150</p>
               </div>
 
               <div>
                 <h2 className="text-xl mb-2">How do you approach spending time with your partner?</h2>
-                <p className="text-sm text-neutral-500 mb-4">Select all that apply</p>
-                <div className="flex flex-col gap-2">
-                  {['Mostly together', 'Balanced', 'Need personal space', 'Depends on the relationship'].map(option => (
-                    <button
-                      key={option}
-                      onClick={() => toggleArrayField('timeWithPartner', option)}
-                      className={`py-3 px-4 rounded-lg border-2 text-left transition-colors ${
-                        preferences.timeWithPartner.includes(option)
-                          ? 'border-[#4A3B32] bg-neutral-50'
-                          : 'border-neutral-300 hover:border-neutral-400'
-                      }`}
-                    >
-                      {option}
-                    </button>
-                  ))}
+                <div className="flex items-center gap-2 mb-2">
+                  <Sparkles size={16} className="text-[#D4A574]" />
+                  <p className="text-sm text-[#D4A574] font-medium">AI-powered matching</p>
                 </div>
+                <p className="text-sm text-neutral-500 mb-2">Describe your ideal balance of togetherness and independence.</p>
+                <p className="text-xs text-neutral-400 mb-4 italic">e.g. "Love doing things together but also need my alone time to recharge"</p>
+                <textarea
+                  value={preferences.timeWithPartner}
+                  onChange={(e) => {
+                    if (e.target.value.length <= 150) {
+                      setPreferences({ ...preferences, timeWithPartner: e.target.value });
+                    }
+                  }}
+                  placeholder="How do you like to balance time together and apart?"
+                  maxLength={150}
+                  rows={3}
+                  className="w-full px-4 py-3 border-2 border-neutral-300 rounded-lg focus:outline-none focus:border-[#4A3B32] resize-none"
+                />
+                <p className="text-xs text-neutral-400 text-right mt-1">{preferences.timeWithPartner.length}/150</p>
               </div>
             </>
           )}
@@ -477,22 +483,26 @@ export function PreferencesScreen() {
           {(isEditMode || step === 4) && (
             <>
               <div>
-                <h2 className="text-xl mb-2">During a disagreement with your partner, are you more likely to:</h2>
-                <div className="flex flex-col gap-2 mt-4">
-                  {['Talk it out right away', 'Take space, then come back to it', 'Avoid it / keep the peace'].map(option => (
-                    <button
-                      key={option}
-                      onClick={() => setPreferences({ ...preferences, conflictStyle: option })}
-                      className={`py-3 px-4 rounded-lg border-2 text-left transition-colors ${
-                        preferences.conflictStyle === option
-                          ? 'border-[#4A3B32] bg-neutral-50'
-                          : 'border-neutral-300 hover:border-neutral-400'
-                      }`}
-                    >
-                      {option}
-                    </button>
-                  ))}
+                <h2 className="text-xl mb-2">During a disagreement with your partner, how do you handle it?</h2>
+                <div className="flex items-center gap-2 mb-2">
+                  <Sparkles size={16} className="text-[#D4A574]" />
+                  <p className="text-sm text-[#D4A574] font-medium">AI-powered matching</p>
                 </div>
+                <p className="text-sm text-neutral-500 mb-2">Describe your approach to resolving conflict.</p>
+                <p className="text-xs text-neutral-400 mb-4 italic">e.g. "I like to talk it out right away, but I give space if they need it"</p>
+                <textarea
+                  value={preferences.conflictStyle}
+                  onChange={(e) => {
+                    if (e.target.value.length <= 150) {
+                      setPreferences({ ...preferences, conflictStyle: e.target.value });
+                    }
+                  }}
+                  placeholder="How do you usually handle disagreements?"
+                  maxLength={150}
+                  rows={3}
+                  className="w-full px-4 py-3 border-2 border-neutral-300 rounded-lg focus:outline-none focus:border-[#4A3B32] resize-none"
+                />
+                <p className="text-xs text-neutral-400 text-right mt-1">{preferences.conflictStyle.length}/150</p>
               </div>
 
               <div>

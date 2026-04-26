@@ -2,9 +2,9 @@ export type UserProfilePreferences = {
   interestedIn: string[];
   relationshipType: string;
   ageRange: [number, number];
-  interests: string[];
-  relationshipMeaning: string[];
-  timeWithPartner: string[];
+  interests: string;
+  relationshipMeaning: string;
+  timeWithPartner: string;
   conflictStyle: string;
   islandScenario: string;
   musicalInstrument: string;
@@ -21,9 +21,9 @@ export const defaultUserProfilePreferences: UserProfilePreferences = {
   interestedIn: [],
   relationshipType: '',
   ageRange: [22, 35],
-  interests: [],
-  relationshipMeaning: [],
-  timeWithPartner: [],
+  interests: '',
+  relationshipMeaning: '',
+  timeWithPartner: '',
   conflictStyle: '',
   islandScenario: '',
   musicalInstrument: '',

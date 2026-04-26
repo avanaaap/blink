@@ -21,6 +21,9 @@ class Settings(BaseSettings):
     jwt_algorithm: str = "HS256"
     jwt_expire_hours: int = 720  # 30 days
 
+    # Google Gemini (AI-powered matching)
+    gemini_api_key: str = ""
+
     # Agora RTC (voice & video calling)
     agora_app_id: str = ""
     agora_app_certificate: str = ""
