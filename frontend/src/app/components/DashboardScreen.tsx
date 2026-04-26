@@ -8,6 +8,7 @@ import { getTodayMatch, getAllMatches, getPartnerReveal, declineMatch } from '..
 import { createCallInvite, getPendingInvite, respondToInvite, checkInviteStatus } from '../../lib/api/call-api';
 import type { CallInvite } from '../../lib/api/call-api';
 import { ReportModal } from '../../components/ReportModal';
+import { FloatingHearts } from './FloatingHearts';
 import type { MatchDetail } from '../../lib/types';
 import type { PartnerReveal } from '../../lib/api/match-api';
 
@@ -186,8 +187,16 @@ export function DashboardScreen() {
   const revealPhotos = partnerReveal?.photos ?? [];
 
   return (
-    <div className="min-h-screen bg-white">
-      <div className="max-w-2xl mx-auto px-6 py-8">
+    <div className="min-h-screen bg-gradient-to-b from-[#faf7f3] via-white to-[#faf7f3] relative overflow-hidden">
+      {/* Background gradient shapes */}
+      <div className="absolute top-[-5%] right-[-10%] w-[40%] h-[35%] rounded-full bg-gradient-to-bl from-[#D4A574]/10 to-transparent blur-3xl gradient-blob" />
+      <div className="absolute bottom-[10%] left-[-8%] w-[35%] h-[30%] rounded-full bg-gradient-to-tr from-[#D4A574]/8 to-transparent blur-3xl gradient-blob" style={{ animationDelay: '2s' }} />
+      <div className="absolute top-[50%] right-[5%] w-[20%] h-[20%] rounded-full bg-gradient-to-tl from-[#E8C9A0]/10 to-transparent blur-2xl gradient-blob" style={{ animationDelay: '3s' }} />
+
+      {/* Floating hearts in background */}
+      <FloatingHearts count={6} />
+
+      <div className="max-w-2xl mx-auto px-6 py-8 relative z-10">
         <div className="flex items-center justify-between mb-12">
           <BlinkLogo size={50} className="text-[#4A3B32]" />
           <div className="flex gap-3">
@@ -217,6 +226,9 @@ export function DashboardScreen() {
 
         {/* Welcome greeting */}
         <div className="text-center mb-8">
+          <div className="inline-block mb-4 px-4 py-1.5 rounded-full bg-gradient-to-r from-[#D4A574]/20 via-[#E8C9A0]/20 to-[#D4A574]/20 border border-[#D4A574]/20">
+            <span className="text-sm text-[#4A3B32]/70">Your daily blind date awaits</span>
+          </div>
           <h1 className="text-3xl font-semibold text-[#4A3B32] mb-2">
             Ready to see who fate picks?
           </h1>
@@ -241,7 +253,7 @@ export function DashboardScreen() {
             {!isPaused && match && (
               <div className="max-w-sm mx-auto mb-8">
                 <h3 className="text-xs uppercase tracking-wider text-[#D4A574] font-semibold mb-3">Today's Match</h3>
-                <div className="bg-white rounded-2xl border-2 border-[#D4A574]/30 p-4">
+                <div className="bg-white/80 backdrop-blur-sm rounded-2xl border-2 border-[#D4A574]/30 p-4 shadow-lg shadow-[#D4A574]/5">
                   <div className="flex items-center gap-4 mb-4">
                     {profileRevealed && revealPhotos.length > 0 ? (
                       <div className="relative w-14 h-14 rounded-full overflow-hidden bg-neutral-200 flex-shrink-0">
@@ -350,7 +362,7 @@ export function DashboardScreen() {
                     return (
                       <div
                         key={m.id}
-                        className="bg-white rounded-xl border border-neutral-200 p-3 hover:border-[#D4A574]/40 transition-colors"
+                        className="bg-white/80 backdrop-blur-sm rounded-xl border border-neutral-200 p-3 hover:border-[#D4A574]/40 hover:shadow-md hover:shadow-[#D4A574]/5 transition-all"
                       >
                         <div className="flex items-center gap-3">
                           <div className="w-10 h-10 bg-gradient-to-br from-[#D4A574]/30 to-[#4A3B32]/20 rounded-full flex items-center justify-center flex-shrink-0">
@@ -414,20 +426,23 @@ export function DashboardScreen() {
 
       {/* Outgoing call (ringing) overlay */}
       {ringingMode && (
-        <div className="fixed inset-0 bg-[#4A3B32]/70 backdrop-blur-sm flex items-center justify-center z-50">
-          <div className="bg-white rounded-3xl p-8 max-w-sm w-full mx-6 text-center">
-            <div className="w-20 h-20 bg-[#4A3B32] rounded-full flex items-center justify-center mx-auto mb-6 animate-pulse">
-              {ringingMode === 'video' ? <Video size={36} className="text-white" /> : <Phone size={36} className="text-white" />}
+        <div className="fixed inset-0 bg-gradient-to-br from-[#4A3B32]/80 to-[#2a1f18]/80 backdrop-blur-sm flex items-center justify-center z-50">
+          <FloatingHearts count={5} />
+          <div className="bg-white/95 backdrop-blur-md rounded-3xl p-8 max-w-sm w-full mx-6 text-center relative z-10 shadow-2xl border border-[#D4A574]/20">
+            <div className="w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6 p-[3px] bg-gradient-to-br from-[#D4A574] via-[#E8C9A0] to-[#D4A574] animate-pulse">
+              <div className="w-full h-full bg-[#4A3B32] rounded-full flex items-center justify-center">
+                {ringingMode === 'video' ? <Video size={36} className="text-white" /> : <Phone size={36} className="text-white" />}
+              </div>
             </div>
-            <h2 className="text-2xl mb-2">Calling {match?.partner_name}...</h2>
-            <p className="text-neutral-600 mb-6">Waiting for them to pick up</p>
+            <h2 className="text-2xl mb-2 text-[#4A3B32]">Calling {match?.partner_name}...</h2>
+            <p className="text-neutral-500 mb-6">Waiting for them to pick up</p>
             <div className="flex items-center justify-center gap-2 mb-6">
-              <Loader2 size={16} className="animate-spin text-neutral-400" />
-              <span className="text-sm text-neutral-500">Ringing</span>
+              <Loader2 size={16} className="animate-spin text-[#D4A574]" />
+              <span className="text-sm text-[#D4A574]">Ringing</span>
             </div>
             <button
               onClick={cancelRinging}
-              className="w-14 h-14 bg-red-500 hover:bg-red-600 rounded-full flex items-center justify-center mx-auto transition-colors"
+              className="w-14 h-14 bg-gradient-to-br from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 rounded-full flex items-center justify-center mx-auto transition-all shadow-lg shadow-red-500/25"
             >
               <PhoneOff size={24} className="text-white" />
             </button>
@@ -437,23 +452,26 @@ export function DashboardScreen() {
 
       {/* Incoming call modal */}
       {incomingInvite && (
-        <div className="fixed inset-0 bg-[#4A3B32]/70 backdrop-blur-sm flex items-center justify-center z-50">
-          <div className="bg-white rounded-3xl p-8 max-w-sm w-full mx-6 text-center">
-            <div className="w-20 h-20 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-6 animate-pulse">
-              {incomingInvite.mode === 'video' ? <Video size={36} className="text-white" /> : <Phone size={36} className="text-white" />}
+        <div className="fixed inset-0 bg-gradient-to-br from-[#4A3B32]/80 to-[#2a1f18]/80 backdrop-blur-sm flex items-center justify-center z-50">
+          <FloatingHearts count={8} />
+          <div className="bg-white/95 backdrop-blur-md rounded-3xl p-8 max-w-sm w-full mx-6 text-center relative z-10 shadow-2xl border border-[#D4A574]/20">
+            <div className="w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6 p-[3px] bg-gradient-to-br from-green-400 via-green-500 to-green-400 animate-pulse">
+              <div className="w-full h-full bg-green-500 rounded-full flex items-center justify-center">
+                {incomingInvite.mode === 'video' ? <Video size={36} className="text-white" /> : <Phone size={36} className="text-white" />}
+              </div>
             </div>
-            <h2 className="text-2xl mb-2">Incoming {incomingInvite.mode === 'video' ? 'Video' : 'Voice'} Call</h2>
-            <p className="text-neutral-600 mb-8">{match?.partner_name} is calling you</p>
+            <h2 className="text-2xl mb-2 text-[#4A3B32]">Incoming {incomingInvite.mode === 'video' ? 'Video' : 'Voice'} Call</h2>
+            <p className="text-neutral-500 mb-8">{match?.partner_name} is calling you</p>
             <div className="flex justify-center gap-6">
               <button
                 onClick={declineIncoming}
-                className="w-14 h-14 bg-red-500 hover:bg-red-600 rounded-full flex items-center justify-center transition-colors"
+                className="w-14 h-14 bg-gradient-to-br from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 rounded-full flex items-center justify-center transition-all shadow-lg shadow-red-500/25"
               >
                 <PhoneOff size={24} className="text-white" />
               </button>
               <button
                 onClick={acceptIncoming}
-                className="w-14 h-14 bg-green-500 hover:bg-green-600 rounded-full flex items-center justify-center transition-colors"
+                className="w-14 h-14 bg-gradient-to-br from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 rounded-full flex items-center justify-center transition-all shadow-lg shadow-green-500/25"
               >
                 <Phone size={24} className="text-white" />
               </button>

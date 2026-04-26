@@ -199,7 +199,7 @@ export function ChatScreen() {
   };
 
   return (
-    <div className="h-screen bg-white flex flex-col relative overflow-hidden">
+    <div className="h-screen bg-gradient-to-b from-[#faf7f3] to-white flex flex-col relative overflow-hidden">
       {timerState !== 'top' && (
         <div className={`absolute inset-0 z-50 transition-opacity duration-500 ${timerState === 'moving' ? 'bg-transparent pointer-events-none' : 'bg-white/90'}`}>
           <div 
@@ -265,7 +265,7 @@ export function ChatScreen() {
         )}
 
         {messages.length === 0 && (
-          <div className="bg-neutral-50 rounded-2xl p-6 border border-neutral-200">
+          <div className="bg-gradient-to-br from-[#faf7f3] to-white rounded-2xl p-6 border border-[#D4A574]/20 shadow-sm">
             <h3 className="text-lg mb-4">Conversation Starters</h3>
             <div className="flex flex-col gap-2">
               {starterQuestions.map((question, idx) => (
@@ -293,8 +293,8 @@ export function ChatScreen() {
                 <div
                   className={`px-4 py-3 rounded-2xl ${
                     message.sender === 'me'
-                      ? 'bg-[#4A3B32] text-white'
-                      : 'bg-[#D4A574]/15 text-[#4A3B32]'
+                      ? 'bg-gradient-to-br from-[#4A3B32] to-[#322822] text-white shadow-sm'
+                      : 'bg-gradient-to-br from-[#D4A574]/15 to-[#E8C9A0]/10 text-[#4A3B32]'
                   }`}
                 >
                   <span>{message.text}</span>
@@ -367,7 +367,7 @@ export function ChatScreen() {
             <button
               onClick={sendMessage}
               disabled={!inputValue.trim()}
-              className="bg-[#4A3B32] text-white p-3 rounded-full hover:bg-[#322822] transition-colors disabled:bg-neutral-300"
+              className="bg-gradient-to-br from-[#4A3B32] to-[#322822] text-white p-3 rounded-full hover:from-[#322822] hover:to-[#2a1f18] transition-all disabled:bg-neutral-300 disabled:from-neutral-300 disabled:to-neutral-300 shadow-sm"
             >
               <Send size={20} />
             </button>
