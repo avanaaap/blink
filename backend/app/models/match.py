@@ -29,3 +29,18 @@ class MatchDetail(BaseModel):
 
 class UnlockUpdate(BaseModel):
     unlock_level: int = Field(ge=0, le=4)
+
+
+class PhotoOut(BaseModel):
+    url: str
+    caption: str | None = None
+
+
+class PartnerReveal(BaseModel):
+    """Full partner profile returned only when unlock_level >= 4."""
+
+    name: str
+    age: int | None = None
+    interests: list[str] = []
+    compatibility_score: int | None = None
+    photos: list[PhotoOut] = []
