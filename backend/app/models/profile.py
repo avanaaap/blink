@@ -40,6 +40,7 @@ class ProfileUpdate(BaseModel):
     spending_habits: SpendingHabit | None = None
     has_debt: DebtStatus | None = None
     wants_kids: KidsPreference | None = None
+    profile_picture_url: str | None = None
     notifications_enabled: bool | None = None
     pause_matches: bool | None = None
 
@@ -63,6 +64,7 @@ class ProfileResponse(BaseModel):
     spending_habits: SpendingHabit | None = None
     has_debt: DebtStatus | None = None
     wants_kids: KidsPreference | None = None
+    profile_picture_url: str | None = None
     notifications_enabled: bool = True
     pause_matches: bool = False
     worldid_verified: bool = False

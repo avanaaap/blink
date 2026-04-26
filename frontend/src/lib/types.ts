@@ -64,6 +64,7 @@ export type Profile = {
   spending_habits?: SpendingHabit;
   has_debt?: DebtStatus;
   wants_kids?: KidsPreference;
+  profile_picture_url?: string;
   notifications_enabled: boolean;
   pause_matches: boolean;
   worldid_verified: boolean;
