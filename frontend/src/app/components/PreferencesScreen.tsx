@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { BlinkLogo } from './BlinkLogo';
 import { ChevronRight, ChevronLeft } from 'lucide-react';
 import { APP_ROUTES } from '../../lib/routes';
+<<<<<<< HEAD
 import { defaultUserProfilePreferences, loadUserProfilePreferences, saveUserProfilePreferences } from '../../lib/profile-storage';
 
 export function PreferencesScreen() {
@@ -11,6 +12,41 @@ export function PreferencesScreen() {
   const isEditMode = searchParams.get('mode') === 'edit';
   const [step, setStep] = useState(1);
   const [preferences, setPreferences] = useState(() => (isEditMode ? loadUserProfilePreferences() : defaultUserProfilePreferences));
+=======
+import { updateMyProfile } from '../../lib/api/profile-api';
+
+export function PreferencesScreen() {
+  const navigate = useNavigate();
+  const [step, setStep] = useState(0);
+  const [saving, setSaving] = useState(false);
+  const [preferences, setPreferences] = useState({
+    // Profile basics
+    name: '',
+    age: '' as string | number,
+
+    // Basic preferences
+    interestedIn: [] as string[],
+    relationshipType: '',
+    ageRange: [22, 35],
+    interests: [] as string[],
+
+    // Deep questions
+    relationshipMeaning: [] as string[],
+    timeWithPartner: [] as string[],
+    conflictStyle: '',
+    islandScenario: '',
+    musicalInstrument: '',
+
+    // Lifestyle
+    sexuality: '',
+    spendingHabits: '',
+    hasDebt: '',
+    wantsKids: '',
+
+    // Photos
+    photos: [] as { url: string; caption: string }[],
+  });
+>>>>>>> 21670ad95767a681d2c5a761ecfb5fb1cf98d3ea
 
   const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -40,8 +76,37 @@ export function PreferencesScreen() {
     });
   };
 
+<<<<<<< HEAD
   const handleSaveAndExit = () => {
     saveUserProfilePreferences(preferences);
+=======
+  const buildProfilePayload = () => ({
+    name: preferences.name,
+    age: Number(preferences.age),
+    interested_in: preferences.interestedIn,
+    relationship_type: preferences.relationshipType || undefined,
+    age_range_min: preferences.ageRange[0],
+    age_range_max: preferences.ageRange[1],
+    interests: preferences.interests,
+    relationship_meaning: preferences.relationshipMeaning,
+    time_with_partner: preferences.timeWithPartner,
+    conflict_style: preferences.conflictStyle || undefined,
+    island_scenario: preferences.islandScenario || undefined,
+    musical_instrument: preferences.musicalInstrument || undefined,
+    sexuality: preferences.sexuality || undefined,
+    spending_habits: preferences.spendingHabits || undefined,
+    has_debt: preferences.hasDebt || undefined,
+    wants_kids: preferences.wantsKids || undefined,
+  });
+
+  const handleSaveAndExit = async () => {
+    setSaving(true);
+    try {
+      await updateMyProfile(buildProfilePayload());
+    } catch (e) {
+      console.error('Failed to save profile:', e);
+    }
+>>>>>>> 21670ad95767a681d2c5a761ecfb5fb1cf98d3ea
     navigate(APP_ROUTES.match);
   };
 
@@ -62,6 +127,8 @@ export function PreferencesScreen() {
 
   const canProceed = () => {
     switch (step) {
+      case 0:
+        return preferences.name.trim().length > 0 && Number(preferences.age) >= 18;
       case 1:
         return preferences.interestedIn.length > 0 && preferences.relationshipType;
       case 2:
@@ -79,9 +146,20 @@ export function PreferencesScreen() {
     }
   };
 
+<<<<<<< HEAD
   const handleComplete = () => {
     saveUserProfilePreferences(preferences);
     navigate(`${APP_ROUTES.myProfile}?fromSetup=true`);
+=======
+  const handleComplete = async () => {
+    setSaving(true);
+    try {
+      await updateMyProfile(buildProfilePayload());
+    } catch (e) {
+      console.error('Failed to save profile:', e);
+    }
+    navigate(APP_ROUTES.match);
+>>>>>>> 21670ad95767a681d2c5a761ecfb5fb1cf98d3ea
   };
 
   return (
@@ -100,7 +178,7 @@ export function PreferencesScreen() {
           <BlinkLogo size={60} className="text-black" />
           <h1 className="text-3xl">{isEditMode ? 'Edit Your Profile' : 'Build Your Profile'}</h1>
           <div className="flex gap-2">
-            {[1, 2, 3, 4, 5, 6].map(s => (
+            {[0, 1, 2, 3, 4, 5, 6].map(s => (
               <div
                 key={s}
                 className={`h-2 w-10 rounded-full transition-colors ${
@@ -112,6 +190,33 @@ export function PreferencesScreen() {
         </div>
 
         <div className="flex flex-col gap-8">
+          {step === 0 && (
+            <>
+              <div>
+                <h2 className="text-xl mb-2">What's your name?</h2>
+                <input
+                  type="text"
+                  value={preferences.name}
+                  onChange={(e) => setPreferences({ ...preferences, name: e.target.value })}
+                  placeholder="Your first name"
+                  className="w-full px-4 py-3 border-2 border-neutral-300 rounded-lg focus:outline-none focus:border-black"
+                />
+              </div>
+              <div>
+                <h2 className="text-xl mb-2">How old are you?</h2>
+                <input
+                  type="number"
+                  min="18"
+                  max="120"
+                  value={preferences.age}
+                  onChange={(e) => setPreferences({ ...preferences, age: e.target.value })}
+                  placeholder="Age"
+                  className="w-full px-4 py-3 border-2 border-neutral-300 rounded-lg focus:outline-none focus:border-black"
+                />
+              </div>
+            </>
+          )}
+
           {step === 1 && (
             <>
               <div>
@@ -471,9 +576,10 @@ export function PreferencesScreen() {
             ) : (
               <button
                 onClick={handleComplete}
-                className="flex-1 bg-[#4A3B32] text-white py-4 px-8 rounded-full hover:bg-[#322822] transition-colors"
+                disabled={saving}
+                className="flex-1 bg-[#4A3B32] text-white py-4 px-8 rounded-full hover:bg-[#322822] transition-colors disabled:bg-neutral-300 disabled:cursor-not-allowed"
               >
-                Complete Setup
+                {saving ? 'Saving...' : 'Complete Setup'}
               </button>
             )}
           </div>

@@ -11,6 +11,7 @@ type VerifyState = {
   error: string | null;
   isNewUser: boolean | null;
   userId: string | null;
+  connectUrl: string | null;
 };
 
 export function useWorldIdVerify() {
@@ -19,18 +20,17 @@ export function useWorldIdVerify() {
     error: null,
     isNewUser: null,
     userId: null,
+    connectUrl: null,
   });
 
   const verify = useCallback(async () => {
     try {
-      setState({ status: "signing", error: null, isNewUser: null, userId: null });
+      setState({ status: "signing", error: null, isNewUser: null, userId: null, connectUrl: null });
 
       // 1. Get RP signature from our backend
       const rpSig = await getRpSignature(ACTION);
 
-      setState((prev) => ({ ...prev, status: "waiting" }));
-
-      // 2. Open IDKit and wait for user to complete verification
+      // 2. Create IDKit request — this gives us a QR code URL
       const request = await IDKit.request({
         app_id: APP_ID,
         action: ACTION,
@@ -46,25 +46,38 @@ export function useWorldIdVerify() {
         return_to: "blink://verify-done",
       }).preset(orbLegacy());
 
-      const idkitResponse = await request.pollUntilCompletion();
+      // Show the QR code to the user
+      setState((prev) => ({
+        ...prev,
+        status: "waiting",
+        connectUrl: request.connectorURI,
+      }));
 
-      setState((prev) => ({ ...prev, status: "verifying" }));
+      // 3. Wait for user to scan QR and complete verification
+      const completion = await request.pollUntilCompletion();
 
-      // 3. Send proof to our backend — it verifies, creates/finds user, returns JWT
-      const authResult = await verifyAndAuthenticate(idkitResponse);
+      if (!completion.success) {
+        throw new Error("World ID verification was rejected");
+      }
+
+      setState((prev) => ({ ...prev, status: "verifying", connectUrl: null }));
+
+      // 4. Send the IDKit result (not the wrapper) to our backend
+      const authResult = await verifyAndAuthenticate(completion.result);
 
       setState({
         status: "success",
         error: null,
         isNewUser: authResult.is_new_user,
         userId: authResult.user_id,
+        connectUrl: null,
       });
 
       return authResult;
     } catch (err) {
       const message =
         err instanceof Error ? err.message : "Verification failed";
-      setState({ status: "error", error: message, isNewUser: null, userId: null });
+      setState({ status: "error", error: message, isNewUser: null, userId: null, connectUrl: null });
       return null;
     }
   }, []);

@@ -38,7 +38,7 @@ def sign_rp_request(
     action: str | None = None,
     ttl: int = DEFAULT_TTL_SEC,
 ) -> dict:
-    key_hex = signing_key_hex.removeprefix("0x")
+    key_hex = signing_key_hex.strip().strip("'\"").removeprefix("0x")
 
     random_bytes = os.urandom(32)
     nonce_bytes = _hash_to_field(random_bytes)
