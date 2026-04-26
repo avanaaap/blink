@@ -120,11 +120,12 @@ def _fetch_blocks(sb: Any) -> set[frozenset[str]]:
 
 
 def _fetch_todays_matched_users(sb: Any, today: str) -> set[str]:
-    """Return user IDs that already have a match row for *today*."""
+    """Return user IDs that already have an active match row for *today*."""
     result = (
         sb.table("matches")
         .select("user_a, user_b")
         .eq("match_date", today)
+        .neq("status", "unmatched")
         .execute()
     )
     matched: set[str] = set()
@@ -550,12 +551,13 @@ def create_match_for_user(sb: Any, user_id: str) -> dict[str, Any] | None:
     """
     today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
 
-    # Check if user already has a match today (any status)
+    # Check if user already has an active match today (skip unmatched)
     existing = (
         sb.table("matches")
         .select("id")
         .eq("match_date", today)
         .or_(f"user_a.eq.{user_id},user_b.eq.{user_id}")
+        .neq("status", "unmatched")
         .limit(1)
         .execute()
     )

@@ -3,45 +3,54 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { APP_ROUTES } from '../../lib/routes';
 import { Button } from '../../components/Button';
 import { ReportModal } from '../../components/ReportModal';
+import { submitStageDecision } from '../../lib/api/matching-api';
+import type { StageDecisionChoice } from '../../lib/api/matching-api';
 
 type ConversationDecision = 'no' | 'unsure' | 'yes';
+
+const DECISION_MAP: Record<ConversationDecision, StageDecisionChoice> = {
+  yes: 'move_forward',
+  unsure: 'not_sure',
+  no: 'dont_move_forward',
+};
 
 export function RatingScreen() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const matchId = searchParams.get('matchId') || '';
   const optedOut = searchParams.get('optedOut') === 'true';
   const callType = searchParams.get('callType') || 'chat';
   const unlockLevel = parseInt(searchParams.get('unlockLevel') || '0');
   const [decision, setDecision] = useState<ConversationDecision | null>(optedOut ? 'no' : null);
   const [feedback, setFeedback] = useState('');
-  const [progressScore, setProgressScore] = useState(72);
+  const [submitting, setSubmitting] = useState(false);
   const [showReportModal, setShowReportModal] = useState(false);
 
-  const decisionScore = decision === 'yes' ? 5 : decision === 'unsure' ? 3 : decision === 'no' ? 1 : 0;
+  const handleSubmit = async () => {
+    if (!decision || !matchId) return;
 
-  const handleSubmit = () => {
-    if (!decision) {
-      return;
-    }
+    setSubmitting(true);
+    try {
+      const result = await submitStageDecision(matchId, DECISION_MAP[decision]);
 
-    const newTotal = progressScore + (decisionScore * 5);
-    setProgressScore(newTotal);
-
-    let newUnlockLevel = unlockLevel;
-    if (decision === 'yes') {
-      if (callType === 'chat' && unlockLevel < 1) {
-        newUnlockLevel = 1;
-      } else if (callType === 'voice' && unlockLevel < 2) {
-        newUnlockLevel = 2;
-      } else if (callType === 'video' && unlockLevel < 3) {
-        newUnlockLevel = 3;
+      if (result.status === 'unmatched') {
+        navigate(APP_ROUTES.match);
+      } else if (result.status === 'advanced') {
+        if (result.unlock_level >= 4) {
+          navigate(APP_ROUTES.reveal);
+        } else {
+          navigate(APP_ROUTES.match);
+        }
+      } else {
+        // "waiting" — other user hasn't decided yet
+        navigate(APP_ROUTES.match);
       }
-    }
-
-    if (newTotal >= 80 && newUnlockLevel === 3) {
-      navigate(APP_ROUTES.reveal);
-    } else {
-      navigate(`${APP_ROUTES.match}?unlockLevel=${newUnlockLevel}`);
+    } catch (e) {
+      console.error('Failed to submit decision:', e);
+      // Fallback: navigate back to match
+      navigate(APP_ROUTES.match);
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -113,35 +122,8 @@ export function RatingScreen() {
           </div>
         </div>
 
-        <div className="mb-8">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-sm text-neutral-600">Connection Progress</span>
-            <span className="text-sm">{progressScore}/100</span>
-          </div>
-          <div className="w-full bg-neutral-200 rounded-full h-3">
-            <div
-              className="bg-gradient-to-r from-neutral-400 to-black h-3 rounded-full transition-all"
-              style={{ width: `${progressScore}%` }}
-            />
-          </div>
-          <p className="text-xs text-neutral-500 mt-2 text-center">
-            Complete the Video Call to unlock profile photos
-          </p>
-
-          {decision === 'yes' && unlockLevel < 3 && (
-            <div className="mt-4 p-4 rounded-lg text-center" style={{ backgroundColor: '#E8C9A0' }}>
-              <p className="text-sm">
-                Great conversation! You've unlocked:{' '}
-                {unlockLevel === 0 && 'Voice Call'}
-                {unlockLevel === 1 && 'Video Call'}
-                {unlockLevel === 2 && 'Profile Reveal'}
-              </p>
-            </div>
-          )}
-        </div>
-
-        <Button onClick={handleSubmit} disabled={decision === null} fullWidth>
-          Continue
+        <Button onClick={handleSubmit} disabled={decision === null || submitting} fullWidth>
+          {submitting ? 'Submitting...' : 'Continue'}
         </Button>
       </div>
 
