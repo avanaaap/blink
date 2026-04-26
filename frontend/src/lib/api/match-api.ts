@@ -1,29 +1,25 @@
-import { matchProfile } from "../mock-data";
 import { hasApiBaseUrl } from "../config";
-import type { ApiResult, MatchDetail } from "../types";
+import type { MatchDetail } from "../types";
 import { apiRequest } from "./client";
 
-export async function getTodayMatch(): Promise<ApiResult<typeof matchProfile>> {
+export type TodayMatchResult = {
+  data: MatchDetail | null;
+  source: "api" | "none";
+};
+
+export async function getTodayMatch(): Promise<TodayMatchResult> {
   if (!hasApiBaseUrl) {
-    return { data: matchProfile, source: "mock" };
+    return { data: null, source: "none" };
   }
 
   try {
     const match = await apiRequest<MatchDetail | null>("/api/matches/today");
     if (!match) {
-      return { data: matchProfile, source: "mock" };
+      return { data: null, source: "none" };
     }
-    // Map API response to the shape the frontend expects
-    const data = {
-      ...matchProfile,
-      name: match.partner_name,
-      age: match.partner_age ?? matchProfile.age,
-      compatibilityScore: match.compatibility_score ?? matchProfile.compatibilityScore,
-      interests: match.shared_interests.length > 0 ? match.shared_interests : matchProfile.interests,
-    };
-    return { data, source: "api" };
+    return { data: match, source: "api" };
   } catch {
-    return { data: matchProfile, source: "mock" };
+    return { data: null, source: "none" };
   }
 }
 
