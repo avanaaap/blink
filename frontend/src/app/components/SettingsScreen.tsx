@@ -4,6 +4,7 @@ import { ArrowLeft, Bell, Lock, User, Heart, HelpCircle } from 'lucide-react';
 import { BlinkLogo } from './BlinkLogo';
 import { APP_ROUTES } from '../../lib/routes';
 import { ToggleSwitch } from '../../components/ToggleSwitch';
+import { clearAccessToken } from '../../lib/api/client';
 
 export function SettingsScreen() {
   const navigate = useNavigate();
@@ -103,7 +104,10 @@ export function SettingsScreen() {
                 Contact Us
               </button>
               <button
-                onClick={() => navigate(APP_ROUTES.landing)}
+                onClick={() => {
+                  clearAccessToken();
+                  navigate(APP_ROUTES.landing);
+                }}
                 className="text-left px-4 py-3 rounded-lg hover:bg-neutral-50 transition-colors text-red-600"
               >
                 Log Out
