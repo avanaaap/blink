@@ -91,10 +91,10 @@ export function VoiceCallScreen() {
   const endCall = useCallback(async () => {
     await leaveCall();
     if (unlockLevel >= 4) {
-      navigate(`${APP_ROUTES.connection}?callType=voice&unlockLevel=${unlockLevel}`);
+      navigate(`${APP_ROUTES.connection}?matchId=${matchId}&callType=voice&unlockLevel=${unlockLevel}`);
     } else {
       navigate(
-        `${APP_ROUTES.rating}?unlockLevel=${unlockLevel}&callType=voice`,
+        `${APP_ROUTES.rating}?matchId=${matchId}&unlockLevel=${unlockLevel}&callType=voice`,
       );
     }
   }, [navigate, unlockLevel]);
