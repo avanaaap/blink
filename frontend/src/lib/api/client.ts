@@ -63,7 +63,8 @@ export async function apiRequest<T>(path: string, init?: RequestInit): Promise<T
       throw new ApiError("Request timed out.");
     }
 
-    throw new ApiError("Unexpected API failure.");
+    const message = error instanceof Error ? error.message : "Unexpected API failure.";
+    throw new ApiError(message);
   } finally {
     clearTimeout(timeout);
   }
