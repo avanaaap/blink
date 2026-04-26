@@ -1,54 +1,95 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { ArrowLeft, UserCircle2, ChevronLeft, ChevronRight } from 'lucide-react';
+import { ArrowLeft, UserCircle2, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
 import { APP_ROUTES } from '../../lib/routes';
-import { loadUserProfilePreferences } from '../../lib/profile-storage';
+import { getMyProfile } from '../../lib/api/profile-api';
+import type { Profile } from '../../lib/types';
 
 export function MyProfileScreen() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const fromSetup = searchParams.get('fromSetup') === 'true';
   const [activePhotoIndex, setActivePhotoIndex] = useState(0);
+  const [profile, setProfile] = useState<Profile | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const profile = useMemo(() => loadUserProfilePreferences(), []);
-  const activePhoto = profile.photos[activePhotoIndex];
+  useEffect(() => {
+    let cancelled = false;
+    getMyProfile()
+      .then((data) => {
+        if (!cancelled) setProfile(data);
+      })
+      .catch((err) => {
+        if (!cancelled) setError(err.message ?? 'Failed to load profile');
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => { cancelled = true; };
+  }, []);
+
+  const photos: Array<{ url: string; caption: string }> = [];
+  const activePhoto = photos[activePhotoIndex];
 
   const nextPhoto = () => {
-    if (profile.photos.length <= 1) return;
-    setActivePhotoIndex((prev) => (prev + 1) % profile.photos.length);
+    if (photos.length <= 1) return;
+    setActivePhotoIndex((prev) => (prev + 1) % photos.length);
   };
 
   const prevPhoto = () => {
-    if (profile.photos.length <= 1) return;
-    setActivePhotoIndex((prev) => (prev - 1 + profile.photos.length) % profile.photos.length);
+    if (photos.length <= 1) return;
+    setActivePhotoIndex((prev) => (prev - 1 + photos.length) % photos.length);
   };
+
+  if (loading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-white">
+        <Loader2 size={32} className="animate-spin text-neutral-400" />
+      </div>
+    );
+  }
+
+  if (error || !profile) {
+    return (
+      <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-white px-6">
+        <p className="text-red-500">{error ?? 'Profile not found'}</p>
+        <button
+          onClick={() => navigate(APP_ROUTES.match)}
+          className="rounded-full border border-neutral-300 px-6 py-2 hover:bg-neutral-50"
+        >
+          Go Back
+        </button>
+      </div>
+    );
+  }
 
   const profileSections = [
     {
       title: 'Basics',
       fields: [
-        { label: 'Interested In', value: profile.interestedIn.join(', ') || 'Not set' },
-        { label: 'Relationship Type', value: profile.relationshipType || 'Not set' },
-        { label: 'Age Range', value: `${profile.ageRange[0]} - ${profile.ageRange[1]}` },
+        { label: 'Interested In', value: profile.interested_in?.join(', ') || 'Not set' },
+        { label: 'Relationship Type', value: profile.relationship_type || 'Not set' },
+        { label: 'Age Range', value: `${profile.age_range_min ?? '?'} - ${profile.age_range_max ?? '?'}` },
       ],
     },
     {
       title: 'Compatibility Questions',
       fields: [
-        { label: 'Relationship Means', value: profile.relationshipMeaning.join(', ') || 'Not set' },
-        { label: 'Time With Partner', value: profile.timeWithPartner.join(', ') || 'Not set' },
-        { label: 'Conflict Style', value: profile.conflictStyle || 'Not set' },
-        { label: 'Island Scenario', value: profile.islandScenario || 'Not set' },
-        { label: 'Musical Instrument', value: profile.musicalInstrument || 'Not set' },
+        { label: 'Relationship Means', value: profile.relationship_meaning?.join(', ') || 'Not set' },
+        { label: 'Time With Partner', value: profile.time_with_partner?.join(', ') || 'Not set' },
+        { label: 'Conflict Style', value: profile.conflict_style || 'Not set' },
+        { label: 'Island Scenario', value: profile.island_scenario || 'Not set' },
+        { label: 'Musical Instrument', value: profile.musical_instrument || 'Not set' },
       ],
     },
     {
       title: 'Lifestyle',
       fields: [
         { label: 'Sexuality', value: profile.sexuality || 'Not set' },
-        { label: 'Spending Habits', value: profile.spendingHabits || 'Not set' },
-        { label: 'Debt', value: profile.hasDebt || 'Not set' },
-        { label: 'Wants Kids', value: profile.wantsKids || 'Not set' },
+        { label: 'Spending Habits', value: profile.spending_habits || 'Not set' },
+        { label: 'Debt', value: profile.has_debt || 'Not set' },
+        { label: 'Wants Kids', value: profile.wants_kids || 'Not set' },
       ],
     },
   ];
@@ -70,7 +111,10 @@ export function MyProfileScreen() {
           </div>
         )}
 
-        <h1 className="mb-6 text-3xl">Your Profile</h1>
+        <h1 className="mb-1 text-3xl">{profile.name || 'Your Profile'}</h1>
+        {profile.age > 0 && (
+          <p className="mb-6 text-neutral-500">{profile.age} years old</p>
+        )}
 
         <div className="overflow-hidden rounded-3xl border-2 border-neutral-200 bg-white shadow-sm">
           <div className="relative aspect-[4/3] w-full bg-neutral-100">
@@ -86,7 +130,7 @@ export function MyProfileScreen() {
                   <p className="text-sm">{activePhoto.caption || 'Profile photo'}</p>
                 </div>
 
-                {profile.photos.length > 1 && (
+                {photos.length > 1 && (
                   <>
                     <button
                       onClick={prevPhoto}
@@ -102,7 +146,7 @@ export function MyProfileScreen() {
                     </button>
 
                     <div className="absolute left-1/2 top-3 flex -translate-x-1/2 gap-1.5 rounded-full bg-black/35 px-3 py-1">
-                      {profile.photos.map((_, index) => (
+                      {photos.map((_, index) => (
                         <div
                           key={`photo-dot-${index}`}
                           className={`h-1.5 w-5 rounded-full ${index === activePhotoIndex ? 'bg-white' : 'bg-white/40'}`}
@@ -124,7 +168,7 @@ export function MyProfileScreen() {
             <div className="rounded-2xl border border-neutral-200 bg-[#faf7f3] p-4">
               <p className="text-xs uppercase tracking-wide text-neutral-500">Interests</p>
               <div className="mt-3 flex flex-wrap gap-2">
-                {profile.interests.length > 0 ? (
+                {profile.interests && profile.interests.length > 0 ? (
                   profile.interests.map((interest) => (
                     <span key={interest} className="rounded-full border border-neutral-300 bg-white px-3 py-1 text-xs text-neutral-700">
                       {interest}
