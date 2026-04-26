@@ -42,6 +42,7 @@ export async function updateUnlockLevel(matchId: string, unlockLevel: number): P
 export type PartnerReveal = {
   name: string;
   age: number | null;
+  bio: string;
   interests: string;
   compatibility_score: number | null;
   photos: Array<{ url: string; caption: string | null }>;

@@ -46,6 +46,7 @@ export type Profile = {
   relationship_type?: RelationshipType;
   age_range_min: number;
   age_range_max: number;
+  bio: string;
   interests: string;
   relationship_meaning: string;
   time_with_partner: string;

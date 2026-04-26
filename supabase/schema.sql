@@ -24,6 +24,7 @@ CREATE TABLE IF NOT EXISTS profiles (
   relationship_type    relationship_type,
   age_range_min        integer DEFAULT 18,
   age_range_max        integer DEFAULT 80,
+  bio                  text DEFAULT '' CHECK (char_length(bio) <= 150),
   interests            text DEFAULT '' CHECK (char_length(interests) <= 150),
   relationship_meaning text DEFAULT '' CHECK (char_length(relationship_meaning) <= 150),
   time_with_partner    text DEFAULT '' CHECK (char_length(time_with_partner) <= 150),

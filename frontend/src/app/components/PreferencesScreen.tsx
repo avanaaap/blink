@@ -27,6 +27,9 @@ export function PreferencesScreen() {
     relationshipType: '',
     ageRange: [22, 35],
 
+    // Bio
+    bio: '',
+
     // Free-response fields (AI-powered matching)
     interests: '',
     relationshipMeaning: '',
@@ -65,6 +68,7 @@ export function PreferencesScreen() {
           interestedIn: profile.interested_in || [],
           relationshipType: profile.relationship_type || '',
           ageRange: [profile.age_range_min ?? 22, profile.age_range_max ?? 35],
+          bio: profile.bio || '',
           interests: profile.interests || '',
           relationshipMeaning: profile.relationship_meaning || '',
           timeWithPartner: profile.time_with_partner || '',
@@ -147,6 +151,7 @@ export function PreferencesScreen() {
     relationship_type: (preferences.relationshipType || undefined) as Profile['relationship_type'],
     age_range_min: preferences.ageRange[0],
     age_range_max: preferences.ageRange[1],
+    bio: preferences.bio,
     interests: preferences.interests,
     relationship_meaning: preferences.relationshipMeaning,
     time_with_partner: preferences.timeWithPartner,
@@ -183,7 +188,7 @@ export function PreferencesScreen() {
   const canProceed = () => {
     switch (step) {
       case 0:
-        return preferences.firstName.trim().length > 0 && preferences.lastName.trim().length > 0 && Number(preferences.age) >= 18 && preferences.gender !== '';
+        return preferences.firstName.trim().length > 0 && preferences.lastName.trim().length > 0 && Number(preferences.age) >= 18 && preferences.gender !== '' && preferences.bio.trim().length > 0;
       case 1:
         return preferences.interestedIn.length > 0 && preferences.relationshipType;
       case 2:
@@ -299,6 +304,28 @@ export function PreferencesScreen() {
                       {option}
                     </button>
                   ))}
+                </div>
+              </div>
+              <div>
+                <h2 className="text-xl mb-2">About You</h2>
+                <p className="text-sm text-neutral-500 mb-3">Write a short bio so your matches can get to know you.</p>
+                <p className="text-xs text-neutral-400 italic mb-2">e.g. "Coffee lover, grad student, always down for a spontaneous road trip"</p>
+                <div className="relative">
+                  <textarea
+                    value={preferences.bio}
+                    onChange={(e) => {
+                      if (e.target.value.length <= 150) {
+                        setPreferences({ ...preferences, bio: e.target.value });
+                      }
+                    }}
+                    placeholder="Tell your matches a little about yourself..."
+                    maxLength={150}
+                    rows={2}
+                    className="w-full px-4 py-3 border-2 border-neutral-300 rounded-lg focus:outline-none focus:border-[#4A3B32] resize-none"
+                  />
+                  <span className="absolute bottom-2 right-3 text-xs text-neutral-400">
+                    {preferences.bio.length}/150
+                  </span>
                 </div>
               </div>
             </>
