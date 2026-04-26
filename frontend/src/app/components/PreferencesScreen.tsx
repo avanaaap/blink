@@ -15,7 +15,8 @@ export function PreferencesScreen() {
   const [saving, setSaving] = useState(false);
   const [preferences, setPreferences] = useState({
     // Profile basics
-    name: '',
+    firstName: '',
+    lastName: '',
     age: '' as string | number,
 
     gender: '',
@@ -93,7 +94,7 @@ export function PreferencesScreen() {
   };
 
   const buildProfilePayload = (): Partial<Profile> => ({
-    name: preferences.name,
+    name: `${preferences.firstName.trim()} ${preferences.lastName.trim()}`.trim(),
     age: Number(preferences.age),
     gender: (preferences.gender || undefined) as Profile['gender'],
     interested_in: preferences.interestedIn as Profile['interested_in'],
@@ -141,7 +142,7 @@ export function PreferencesScreen() {
   const canProceed = () => {
     switch (step) {
       case 0:
-        return preferences.name.trim().length > 0 && Number(preferences.age) >= 18 && preferences.gender !== '';
+        return preferences.firstName.trim().length > 0 && preferences.lastName.trim().length > 0 && Number(preferences.age) >= 18 && preferences.gender !== '';
       case 1:
         return preferences.interestedIn.length > 0 && preferences.relationshipType;
       case 2:
@@ -176,7 +177,7 @@ export function PreferencesScreen() {
         <div className="flex justify-end mb-4">
           <button 
             onClick={handleSaveAndExit}
-            className="text-sm font-medium text-neutral-500 hover:text-black border-b border-transparent hover:border-black transition-colors pb-1"
+            className="text-sm font-medium text-neutral-500 hover:text-[#4A3B32] border-b border-transparent hover:border-[#4A3B32] transition-colors pb-1"
           >
             Save & Exit
           </button>
@@ -202,13 +203,22 @@ export function PreferencesScreen() {
             <>
               <div>
                 <h2 className="text-xl mb-2">What's your name?</h2>
-                <input
-                  type="text"
-                  value={preferences.name}
-                  onChange={(e) => setPreferences({ ...preferences, name: e.target.value })}
-                  placeholder="Your first name"
-                  className="w-full px-4 py-3 border-2 border-neutral-300 rounded-lg focus:outline-none focus:border-black"
-                />
+                <div className="grid grid-cols-2 gap-3">
+                  <input
+                    type="text"
+                    value={preferences.firstName}
+                    onChange={(e) => setPreferences({ ...preferences, firstName: e.target.value })}
+                    placeholder="First name"
+                    className="w-full px-4 py-3 border-2 border-neutral-300 rounded-lg focus:outline-none focus:border-[#4A3B32]"
+                  />
+                  <input
+                    type="text"
+                    value={preferences.lastName}
+                    onChange={(e) => setPreferences({ ...preferences, lastName: e.target.value })}
+                    placeholder="Last name"
+                    className="w-full px-4 py-3 border-2 border-neutral-300 rounded-lg focus:outline-none focus:border-[#4A3B32]"
+                  />
+                </div>
               </div>
               <div>
                 <h2 className="text-xl mb-2">How old are you?</h2>
@@ -219,7 +229,7 @@ export function PreferencesScreen() {
                   value={preferences.age}
                   onChange={(e) => setPreferences({ ...preferences, age: e.target.value })}
                   placeholder="Age"
-                  className="w-full px-4 py-3 border-2 border-neutral-300 rounded-lg focus:outline-none focus:border-black"
+                  className="w-full px-4 py-3 border-2 border-neutral-300 rounded-lg focus:outline-none focus:border-[#4A3B32]"
                 />
               </div>
               <div>
@@ -231,7 +241,7 @@ export function PreferencesScreen() {
                       onClick={() => setPreferences({ ...preferences, gender: option })}
                       className={`py-3 px-4 rounded-lg border-2 transition-colors ${
                         preferences.gender === option
-                          ? 'border-black bg-neutral-50'
+                          ? 'border-[#4A3B32] bg-neutral-50'
                           : 'border-neutral-300 hover:border-neutral-400'
                       }`}
                     >
@@ -255,7 +265,7 @@ export function PreferencesScreen() {
                       onClick={() => toggleArrayField('interestedIn', option)}
                       className={`py-3 px-4 rounded-lg border-2 transition-colors ${
                         preferences.interestedIn.includes(option)
-                          ? 'border-black bg-neutral-50'
+                          ? 'border-[#4A3B32] bg-neutral-50'
                           : 'border-neutral-300 hover:border-neutral-400'
                       }`}
                     >
@@ -275,7 +285,7 @@ export function PreferencesScreen() {
                       onClick={() => setPreferences({ ...preferences, relationshipType: option })}
                       className={`py-3 px-4 rounded-lg border-2 text-left transition-colors ${
                         preferences.relationshipType === option
-                          ? 'border-black bg-neutral-50'
+                          ? 'border-[#4A3B32] bg-neutral-50'
                           : 'border-neutral-300 hover:border-neutral-400'
                       }`}
                     >
@@ -306,7 +316,7 @@ export function PreferencesScreen() {
                       max="80"
                       value={preferences.ageRange[0]}
                       onChange={(e) => setPreferences({ ...preferences, ageRange: [parseInt(e.target.value), preferences.ageRange[1]] })}
-                      className="w-full px-4 py-3 border-2 border-neutral-300 rounded-lg focus:outline-none focus:border-black"
+                      className="w-full px-4 py-3 border-2 border-neutral-300 rounded-lg focus:outline-none focus:border-[#4A3B32]"
                     />
                   </div>
                   <div>
@@ -317,7 +327,7 @@ export function PreferencesScreen() {
                       max="80"
                       value={preferences.ageRange[1]}
                       onChange={(e) => setPreferences({ ...preferences, ageRange: [preferences.ageRange[0], parseInt(e.target.value)] })}
-                      className="w-full px-4 py-3 border-2 border-neutral-300 rounded-lg focus:outline-none focus:border-black"
+                      className="w-full px-4 py-3 border-2 border-neutral-300 rounded-lg focus:outline-none focus:border-[#4A3B32]"
                     />
                   </div>
                 </div>
@@ -333,7 +343,7 @@ export function PreferencesScreen() {
                       onClick={() => toggleArrayField('interests', interest)}
                       className={`py-3 px-4 rounded-lg border-2 transition-colors ${
                         preferences.interests.includes(interest)
-                          ? 'border-black bg-neutral-50'
+                          ? 'border-[#4A3B32] bg-neutral-50'
                           : 'border-neutral-300 hover:border-neutral-400'
                       }`}
                     >
@@ -357,7 +367,7 @@ export function PreferencesScreen() {
                       onClick={() => toggleArrayField('relationshipMeaning', option)}
                       className={`py-3 px-4 rounded-lg border-2 text-left transition-colors ${
                         preferences.relationshipMeaning.includes(option)
-                          ? 'border-black bg-neutral-50'
+                          ? 'border-[#4A3B32] bg-neutral-50'
                           : 'border-neutral-300 hover:border-neutral-400'
                       }`}
                     >
@@ -377,7 +387,7 @@ export function PreferencesScreen() {
                       onClick={() => toggleArrayField('timeWithPartner', option)}
                       className={`py-3 px-4 rounded-lg border-2 text-left transition-colors ${
                         preferences.timeWithPartner.includes(option)
-                          ? 'border-black bg-neutral-50'
+                          ? 'border-[#4A3B32] bg-neutral-50'
                           : 'border-neutral-300 hover:border-neutral-400'
                       }`}
                     >
@@ -400,7 +410,7 @@ export function PreferencesScreen() {
                       onClick={() => setPreferences({ ...preferences, conflictStyle: option })}
                       className={`py-3 px-4 rounded-lg border-2 text-left transition-colors ${
                         preferences.conflictStyle === option
-                          ? 'border-black bg-neutral-50'
+                          ? 'border-[#4A3B32] bg-neutral-50'
                           : 'border-neutral-300 hover:border-neutral-400'
                       }`}
                     >
@@ -419,7 +429,7 @@ export function PreferencesScreen() {
                       onClick={() => setPreferences({ ...preferences, islandScenario: option })}
                       className={`py-3 px-4 rounded-lg border-2 text-left transition-colors ${
                         preferences.islandScenario === option
-                          ? 'border-black bg-neutral-50'
+                          ? 'border-[#4A3B32] bg-neutral-50'
                           : 'border-neutral-300 hover:border-neutral-400'
                       }`}
                     >
@@ -438,7 +448,7 @@ export function PreferencesScreen() {
                       onClick={() => setPreferences({ ...preferences, musicalInstrument: option })}
                       className={`py-3 px-4 rounded-lg border-2 text-left transition-colors ${
                         preferences.musicalInstrument === option
-                          ? 'border-black bg-neutral-50'
+                          ? 'border-[#4A3B32] bg-neutral-50'
                           : 'border-neutral-300 hover:border-neutral-400'
                       }`}
                     >
@@ -461,7 +471,7 @@ export function PreferencesScreen() {
                       onClick={() => setPreferences({ ...preferences, sexuality: option })}
                       className={`py-3 px-4 rounded-lg border-2 text-left transition-colors ${
                         preferences.sexuality === option
-                          ? 'border-black bg-neutral-50'
+                          ? 'border-[#4A3B32] bg-neutral-50'
                           : 'border-neutral-300 hover:border-neutral-400'
                       }`}
                     >
@@ -480,7 +490,7 @@ export function PreferencesScreen() {
                       onClick={() => setPreferences({ ...preferences, spendingHabits: option })}
                       className={`py-3 px-4 rounded-lg border-2 text-left transition-colors ${
                         preferences.spendingHabits === option
-                          ? 'border-black bg-neutral-50'
+                          ? 'border-[#4A3B32] bg-neutral-50'
                           : 'border-neutral-300 hover:border-neutral-400'
                       }`}
                     >
@@ -499,7 +509,7 @@ export function PreferencesScreen() {
                       onClick={() => setPreferences({ ...preferences, hasDebt: option })}
                       className={`py-3 px-4 rounded-lg border-2 text-left transition-colors ${
                         preferences.hasDebt === option
-                          ? 'border-black bg-neutral-50'
+                          ? 'border-[#4A3B32] bg-neutral-50'
                           : 'border-neutral-300 hover:border-neutral-400'
                       }`}
                     >
@@ -518,7 +528,7 @@ export function PreferencesScreen() {
                       onClick={() => setPreferences({ ...preferences, wantsKids: option })}
                       className={`py-3 px-4 rounded-lg border-2 text-left transition-colors ${
                         preferences.wantsKids === option
-                          ? 'border-black bg-neutral-50'
+                          ? 'border-[#4A3B32] bg-neutral-50'
                           : 'border-neutral-300 hover:border-neutral-400'
                       }`}
                     >
@@ -556,7 +566,7 @@ export function PreferencesScreen() {
                           value={photo.caption}
                           onChange={(e) => handleCaptionChange(idx, e.target.value)}
                           placeholder="Write a caption..."
-                          className="w-full px-3 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:border-black"
+                          className="w-full px-3 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:border-[#4A3B32]"
                         />
                       </div>
                     </div>

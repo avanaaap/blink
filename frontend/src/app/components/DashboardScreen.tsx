@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { BlinkLogo } from './BlinkLogo';
-import { Settings, LogOut, MessageCircle, Phone, Video, Flag, PhoneOff, Loader2 } from 'lucide-react';
+import { Settings, LogOut, MessageCircle, Phone, Video, Flag, PhoneOff, Loader2, User, History } from 'lucide-react';
 import { APP_ROUTES } from '../../lib/routes';
 import { Button } from '../../components/Button';
 import { getTodayMatch } from '../../lib/api/match-api';
@@ -283,6 +283,25 @@ export function DashboardScreen() {
                   </button>
                 </div>
               </div>
+
+              {unlockLevel >= 4 && (
+                <div className="grid gap-2 sm:grid-cols-2">
+                  <button
+                    onClick={() => navigate(`${APP_ROUTES.reveal}?matchId=${match.id}`)}
+                    className="flex items-center justify-center gap-2 rounded-lg border border-[#4A3B32] px-3 py-2 text-[#4A3B32] hover:bg-neutral-50 transition-colors text-sm"
+                  >
+                    <User size={15} />
+                    View Profile
+                  </button>
+                  <button
+                    onClick={() => navigate(APP_ROUTES.conversationHistory)}
+                    className="flex items-center justify-center gap-2 rounded-lg border border-neutral-300 px-3 py-2 text-neutral-600 hover:bg-neutral-50 transition-colors text-sm"
+                  >
+                    <History size={15} />
+                    Chat History
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         ) : (

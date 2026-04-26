@@ -94,7 +94,7 @@ export function RatingScreen() {
                   onClick={() => setDecision(option.value)}
                   className={`w-full rounded-lg border px-4 py-3 text-left transition-colors ${
                     decision === option.value
-                      ? 'border-black bg-black text-white'
+                      ? 'border-[#4A3B32] bg-[#4A3B32] text-white'
                       : 'border-neutral-300 bg-white text-neutral-900 hover:border-neutral-500'
                   }`}
                 >

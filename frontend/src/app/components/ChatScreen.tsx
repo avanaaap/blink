@@ -166,17 +166,17 @@ export function ChatScreen() {
 
   const startVoiceCall = () => {
     if (!voiceUnlocked) return;
-    navigate(`${APP_ROUTES.voiceCall}?unlockLevel=${unlockLevel}`);
+    navigate(`${APP_ROUTES.voiceCall}?matchId=${matchId}&unlockLevel=${unlockLevel}`);
   };
 
   const startVideoCall = () => {
     if (!videoUnlocked) return;
-    navigate(`${APP_ROUTES.videoCall}?unlockLevel=${unlockLevel}`);
+    navigate(`${APP_ROUTES.videoCall}?matchId=${matchId}&unlockLevel=${unlockLevel}`);
   };
 
-  const handleBackToHistory = () => {
+  const handleBack = () => {
     saveConversationSnapshot('Conversation viewed from back navigation');
-    navigate(APP_ROUTES.conversationHistory);
+    navigate(APP_ROUTES.match);
   };
 
   const handleEndConversation = () => {
@@ -215,7 +215,7 @@ export function ChatScreen() {
       <div className="border-b border-neutral-200 px-6 py-4">
         <div className="max-w-3xl mx-auto flex items-center justify-between">
           <button
-            onClick={handleBackToHistory}
+            onClick={handleBack}
             className="flex items-center gap-2 text-neutral-600 hover:text-black"
             aria-label="Back to conversation history"
           >
@@ -305,7 +305,7 @@ export function ChatScreen() {
               className={[
                 'flex items-center justify-center gap-2 rounded-full border px-4 py-3 transition-colors',
                 voiceUnlocked
-                  ? 'border-black text-black hover:bg-neutral-50'
+                  ? 'border-[#4A3B32] text-[#4A3B32] hover:bg-neutral-50'
                   : 'cursor-not-allowed border-neutral-300 text-neutral-500',
               ].join(' ')}
             >
@@ -316,10 +316,10 @@ export function ChatScreen() {
               onClick={startVideoCall}
               disabled={!videoUnlocked}
               className={[
-                'flex items-center justify-center gap-2 rounded-full px-4 py-3 transition-colors',
+                'flex items-center justify-center gap-2 rounded-full border px-4 py-3 transition-colors',
                 videoUnlocked
-                  ? 'bg-[#D4A574] text-white hover:opacity-90'
-                  : 'cursor-not-allowed border border-neutral-300 bg-neutral-100 text-neutral-500',
+                  ? 'border-[#4A3B32] text-[#4A3B32] hover:bg-neutral-50'
+                  : 'cursor-not-allowed border-neutral-300 text-neutral-500',
               ].join(' ')}
             >
               <Video size={18} />
