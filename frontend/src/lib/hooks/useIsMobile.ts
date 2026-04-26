@@ -9,12 +9,7 @@ function detectMobile(): boolean {
     return true;
   }
 
-  // iPadOS 13+ reports as Mac — detect via touch support + screen size
-  if (/Macintosh/i.test(ua) && navigator.maxTouchPoints > 1) {
-    return true;
-  }
-
-  // Fallback: coarse pointer (touch) indicates mobile/tablet
+  // Fallback: coarse pointer (touch) indicates mobile
   if (window.matchMedia?.("(pointer: coarse)").matches) {
     return true;
   }
