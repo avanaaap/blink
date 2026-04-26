@@ -21,6 +21,7 @@ class MatchDetail(BaseModel):
     id: str
     partner_name: str
     partner_age: int | None = None
+    partner_bio: str = ""
     compatibility_score: int | None = None
     shared_interests: list[str] = []
     status: MatchStatus = MatchStatus.PENDING

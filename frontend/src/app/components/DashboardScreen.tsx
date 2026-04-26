@@ -277,6 +277,10 @@ export function DashboardScreen() {
                     </div>
                   </div>
 
+                  {match.partner_bio && (
+                    <p className="text-sm text-neutral-600 mb-3 line-clamp-2">{match.partner_bio}</p>
+                  )}
+
                   {/* Action buttons */}
                   <div className="flex gap-2 mb-3">
                     <button
@@ -372,6 +376,9 @@ export function DashboardScreen() {
                           </div>
                           <div className="flex-1 min-w-0">
                             <p className="text-sm font-medium text-[#4A3B32]">{m.partner_name}{m.partner_age ? `, ${m.partner_age}` : ''}</p>
+                            {m.partner_bio && (
+                              <p className="text-xs text-neutral-600 truncate">{m.partner_bio}</p>
+                            )}
                             <p className="text-xs text-neutral-500">
                               {m.status === 'connected' ? 'Connected' : `Level ${mUnlock}`}
                               {m.compatibility_score != null && ` · ${m.compatibility_score}%`}
