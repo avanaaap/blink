@@ -4,21 +4,26 @@ import { useNavigate } from 'react-router-dom';
 import { APP_ROUTES } from '../../lib/routes';
 import { Button } from '../../components/Button';
 import { useWorldIdVerify } from '../../lib/hooks/useWorldIdVerify';
+import { getAccessToken } from '../../lib/api/client';
 import { QRCodeSVG } from 'qrcode.react';
 
 export function WelcomeScreen() {
   const navigate = useNavigate();
-<<<<<<< HEAD
-  const { status, error, verify } = useWorldIdVerify();
+  const { status, error, connectUrl, verify } = useWorldIdVerify();
   const [showAuthPanel, setShowAuthPanel] = useState(false);
+
+  // If user already has a valid token, skip verification
+  useEffect(() => {
+    const token = getAccessToken();
+    if (token) {
+      navigate(APP_ROUTES.match, { replace: true });
+    }
+  }, [navigate]);
 
   useEffect(() => {
     const timer = setTimeout(() => setShowAuthPanel(true), 2200);
     return () => clearTimeout(timer);
   }, []);
-=======
-  const { status, error, connectUrl, verify } = useWorldIdVerify();
->>>>>>> 21670ad95767a681d2c5a761ecfb5fb1cf98d3ea
 
   const handleVerify = async () => {
     const result = await verify();
@@ -32,13 +37,19 @@ export function WelcomeScreen() {
   };
 
   const isLoading = status === "signing" || status === "verifying";
+  const buttonLabel = isLoading
+    ? status === "signing"
+      ? "Preparing..."
+      : "Verifying..."
+    : status === "error"
+      ? "Try Again"
+      : "Verify with World ID";
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-gradient-to-b from-white via-[#f8f5f1] to-[#efe8df] px-6">
       <div className="pointer-events-none absolute -left-16 top-24 h-56 w-56 rounded-full bg-[#E8C9A0]/30 blur-3xl" />
       <div className="pointer-events-none absolute -right-10 bottom-20 h-48 w-48 rounded-full bg-[#D4A574]/25 blur-3xl" />
 
-<<<<<<< HEAD
       <div className="mx-auto flex min-h-screen w-full max-w-md flex-col items-center">
         <div
           className={[
@@ -67,75 +78,43 @@ export function WelcomeScreen() {
             Build chemistry through words first. Voice and video unlock as interest grows.
           </p>
 
-          <div className="mt-8 flex w-full flex-col gap-3">
-            <Button onClick={() => navigate(APP_ROUTES.login)} fullWidth>
-              Log In
-            </Button>
-            <Button onClick={() => navigate(APP_ROUTES.signup)} variant="outline" fullWidth>
-              Create Account
-            </Button>
-
-            <p className="pt-2 text-center text-xs text-neutral-500">or continue with verification</p>
-
-            <Button
-              onClick={handleVerify}
-              fullWidth
-              disabled={isLoading}
-              variant="secondary"
-            >
-              {buttonLabel}
-            </Button>
-          </div>
-
-          {error && (
-            <p className="mt-3 text-center text-sm text-red-500">{error}</p>
-=======
-        <div className="mt-8 flex w-full flex-col items-center gap-4">
-          {connectUrl ? (
-            <div className="flex flex-col items-center gap-4">
-              <p className="text-neutral-700 font-medium">
-                Scan with World App
-              </p>
-              <div className="bg-white p-4 rounded-2xl shadow-lg border border-neutral-200">
-                <QRCodeSVG
-                  value={connectUrl}
-                  size={240}
-                  level="M"
-                  includeMargin
-                />
+          <div className="mt-8 flex w-full flex-col items-center gap-3">
+            {connectUrl ? (
+              <div className="flex flex-col items-center gap-4">
+                <p className="text-neutral-700 font-medium">
+                  Scan with World App
+                </p>
+                <div className="bg-white p-4 rounded-2xl shadow-lg border border-neutral-200">
+                  <QRCodeSVG
+                    value={connectUrl}
+                    size={240}
+                    level="M"
+                    includeMargin
+                  />
+                </div>
+                <p className="text-sm text-neutral-500 animate-pulse">
+                  Waiting for verification...
+                </p>
               </div>
-              <p className="text-sm text-neutral-500 animate-pulse">
-                Waiting for verification...
-              </p>
-            </div>
-          ) : (
-            <>
+            ) : (
               <Button
                 onClick={handleVerify}
                 fullWidth
                 disabled={isLoading}
               >
-                {isLoading
-                  ? status === "signing"
-                    ? "Preparing..."
-                    : "Verifying..."
-                  : status === "error"
-                    ? "Try Again"
-                    : "Verify with World ID"}
+                {buttonLabel}
               </Button>
+            )}
+          </div>
 
-              {error && (
-                <p className="text-red-500 text-sm text-center">{error}</p>
-              )}
-            </>
->>>>>>> 21670ad95767a681d2c5a761ecfb5fb1cf98d3ea
+          {error && (
+            <p className="mt-3 text-center text-sm text-red-500">{error}</p>
           )}
 
           <p className="text-xs text-neutral-400 text-center mt-4">
-            Verified by World ID - one account per person
+            Verified by World ID — one account per person
           </p>
         </div>
-
       </div>
     </div>
   );
