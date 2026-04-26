@@ -1,13 +1,27 @@
 import { useState, useEffect } from "react";
 
+function detectMobile(): boolean {
+  if (typeof window === "undefined") return false;
+
+  // Check user agent for common mobile identifiers
+  const ua = navigator.userAgent || "";
+  if (/iPhone|iPad|iPod|Android|webOS|BlackBerry|Opera Mini|IEMobile/i.test(ua)) {
+    return true;
+  }
+
+  // Fallback: coarse pointer (touch) indicates mobile
+  if (window.matchMedia?.("(pointer: coarse)").matches) {
+    return true;
+  }
+
+  return false;
+}
+
 export function useIsMobile(): boolean {
-  const [isMobile, setIsMobile] = useState(() => {
-    if (typeof navigator === "undefined") return false;
-    return /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-  });
+  const [isMobile, setIsMobile] = useState(detectMobile);
 
   useEffect(() => {
-    setIsMobile(/iPhone|iPad|iPod|Android/i.test(navigator.userAgent));
+    setIsMobile(detectMobile());
   }, []);
 
   return isMobile;
