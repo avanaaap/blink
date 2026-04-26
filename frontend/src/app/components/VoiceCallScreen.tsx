@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { Mic, MicOff, PhoneOff, Phone, Loader2 } from "lucide-react";
 import { APP_ROUTES } from "../../lib/routes";
 import { getAgoraToken } from "../../lib/api/agora-api";
+import { FloatingHearts } from './FloatingHearts';
 import {
   joinVoiceCall,
   leaveCall,
@@ -100,8 +101,16 @@ export function VoiceCallScreen() {
   }, [navigate, unlockLevel]);
 
   return (
-    <div className="h-screen bg-gradient-to-br from-neutral-900 to-black flex flex-col">
-      <div className="flex-1 flex items-center justify-center">
+    <div className="h-screen bg-gradient-to-br from-[#4A3B32] via-[#5a4a3f] to-[#2a1f18] flex flex-col relative overflow-hidden">
+      {/* Gradient blobs */}
+      <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] rounded-full bg-gradient-to-br from-[#D4A574]/20 to-transparent blur-3xl gradient-blob" />
+      <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] rounded-full bg-gradient-to-tl from-[#D4A574]/15 to-transparent blur-3xl gradient-blob" style={{ animationDelay: '2s' }} />
+      <div className="absolute top-[40%] right-[10%] w-[25%] h-[25%] rounded-full bg-gradient-to-bl from-[#E8C9A0]/10 to-transparent blur-2xl gradient-blob" style={{ animationDelay: '3s' }} />
+
+      {/* Floating hearts */}
+      <FloatingHearts count={10} />
+
+      <div className="flex-1 flex items-center justify-center relative z-10">
         <div className="text-center">
           {callState === "connecting" && (
             <>
@@ -110,18 +119,19 @@ export function VoiceCallScreen() {
                 className="text-white mx-auto mb-6 animate-spin"
               />
               <h2 className="text-white text-2xl mb-2">Connecting…</h2>
+              <p className="text-white/50">Setting up your voice channel</p>
             </>
           )}
 
           {callState === "error" && (
             <>
-              <h2 className="text-red-400 text-2xl mb-2">
+              <h2 className="text-red-300 text-2xl mb-2">
                 Call Failed
               </h2>
-              <p className="text-neutral-400 mb-8">{errorMsg}</p>
+              <p className="text-white/60 mb-8">{errorMsg}</p>
               <button
                 onClick={() => navigate(-1)}
-                className="px-6 py-3 bg-neutral-700 rounded-full text-white"
+                className="px-6 py-3 bg-white/10 backdrop-blur-sm border border-white/20 rounded-full text-white hover:bg-white/20 transition-colors"
               >
                 Go Back
               </button>
@@ -130,16 +140,19 @@ export function VoiceCallScreen() {
 
           {callState === "connected" && (
             <>
-              <div className="w-32 h-32 bg-neutral-700 rounded-full flex items-center justify-center mx-auto mb-8 animate-pulse">
-                <Phone size={48} className="text-white" />
+              {/* Gradient ring around avatar */}
+              <div className="w-36 h-36 rounded-full mx-auto mb-8 p-[3px] bg-gradient-to-br from-[#D4A574] via-[#E8C9A0] to-[#D4A574] animate-pulse">
+                <div className="w-full h-full bg-[#4A3B32]/80 backdrop-blur-sm rounded-full flex items-center justify-center">
+                  <Phone size={48} className="text-white" />
+                </div>
               </div>
 
               <h2 className="text-white text-2xl mb-2">Voice Call</h2>
-              <p className="text-neutral-400 mb-2">
+              <p className="text-[#D4A574] mb-4">
                 {partnerJoined ? "Connected" : "Waiting for partner…"}
               </p>
 
-              <div className="bg-black/50 backdrop-blur-sm px-6 py-3 rounded-full text-white text-xl inline-block">
+              <div className="bg-white/10 backdrop-blur-md px-6 py-3 rounded-full text-white text-xl inline-block border border-white/10">
                 {formatDuration(callDuration)}
               </div>
             </>
@@ -148,34 +161,39 @@ export function VoiceCallScreen() {
       </div>
 
       {callState === "connected" && (
-        <div className="p-8 bg-gradient-to-t from-black to-transparent">
-          <div className="max-w-md mx-auto flex justify-center gap-6">
-            <button
-              onClick={handleMuteToggle}
-              className={`w-16 h-16 rounded-full flex items-center justify-center transition-colors ${
-                isMuted
-                  ? "bg-red-500 hover:bg-red-600"
-                  : "bg-neutral-700 hover:bg-neutral-600"
-              }`}
-            >
-              {isMuted ? (
-                <MicOff size={24} className="text-white" />
-              ) : (
-                <Mic size={24} className="text-white" />
-              )}
-            </button>
+        <div className="p-8 relative z-10">
+          <div className="max-w-md mx-auto">
+            {/* Gradient divider */}
+            <div className="h-px w-32 mx-auto mb-6 bg-gradient-to-r from-transparent via-[#D4A574]/50 to-transparent" />
 
-            <button
-              onClick={endCall}
-              className="w-16 h-16 rounded-full bg-red-500 hover:bg-red-600 flex items-center justify-center transition-colors"
-            >
-              <PhoneOff size={24} className="text-white" />
-            </button>
+            <div className="flex justify-center gap-6">
+              <button
+                onClick={handleMuteToggle}
+                className={`w-16 h-16 rounded-full flex items-center justify-center transition-all ${
+                  isMuted
+                    ? "bg-red-500/80 hover:bg-red-500 shadow-lg shadow-red-500/25"
+                    : "bg-white/15 backdrop-blur-sm hover:bg-white/25 border border-white/10"
+                }`}
+              >
+                {isMuted ? (
+                  <MicOff size={24} className="text-white" />
+                ) : (
+                  <Mic size={24} className="text-white" />
+                )}
+              </button>
+
+              <button
+                onClick={endCall}
+                className="w-16 h-16 rounded-full bg-gradient-to-br from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 flex items-center justify-center transition-all shadow-lg shadow-red-500/30"
+              >
+                <PhoneOff size={24} className="text-white" />
+              </button>
+            </div>
+
+            <p className="text-center text-[#D4A574]/70 mt-6 text-sm">
+              Complete this call to unlock video calling
+            </p>
           </div>
-
-          <p className="text-center text-white/60 mt-6 text-sm">
-            Complete this call to unlock video calling
-          </p>
         </div>
       )}
     </div>
