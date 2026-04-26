@@ -20,42 +20,6 @@ class RelationshipType(str, Enum):
     OPEN_TO_EITHER = "Open to Either"
 
 
-class InterestOption(str, Enum):
-    TRAVEL = "Travel"
-    MUSIC = "Music"
-    ART = "Art"
-    SPORTS = "Sports"
-    COOKING = "Cooking"
-    READING = "Reading"
-    TECHNOLOGY = "Technology"
-    FITNESS = "Fitness"
-    MOVIES = "Movies"
-    PHOTOGRAPHY = "Photography"
-    GAMING = "Gaming"
-    NATURE = "Nature"
-
-
-class RelationshipValue(str, Enum):
-    EMOTIONAL_SUPPORT = "Emotional support"
-    QUALITY_TIME = "Quality time"
-    TRUST_CONNECTION = "Trust & connection"
-    SHARED_EXPERIENCES = "Shared experiences"
-    COMMITMENT = "Commitment"
-    PHYSICAL_AFFECTION = "Physical affection"
-
-
-class TimeWithPartner(str, Enum):
-    MOSTLY_TOGETHER = "Mostly together"
-    BALANCED = "Balanced"
-    NEED_PERSONAL_SPACE = "Need personal space"
-    DEPENDS = "Depends on the relationship"
-
-
-class ConflictStyle(str, Enum):
-    TALK_IT_OUT = "Talk it out right away"
-    TAKE_SPACE = "Take space, then come back to it"
-    AVOID = "Avoid it / keep the peace"
-
 
 class IslandScenario(str, Enum):
     CRY = "Cry"

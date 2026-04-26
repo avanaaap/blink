@@ -25,16 +25,7 @@ export type Message = {
 export type GenderIdentity = "Man" | "Woman" | "Non-binary" | "Prefer not to say";
 export type GenderOption = "Women" | "Men" | "Non-binary";
 export type RelationshipType = "Monogamy" | "Polyamory" | "Open to Either";
-export type InterestOption =
-  | "Travel" | "Music" | "Art" | "Sports" | "Cooking" | "Reading"
-  | "Technology" | "Fitness" | "Movies" | "Photography" | "Gaming" | "Nature";
-export type RelationshipValue =
-  | "Emotional support" | "Quality time" | "Trust & connection"
-  | "Shared experiences" | "Commitment" | "Physical affection";
-export type TimeWithPartner =
-  | "Mostly together" | "Balanced" | "Need personal space" | "Depends on the relationship";
-export type ConflictStyle =
-  | "Talk it out right away" | "Take space, then come back to it" | "Avoid it / keep the peace";
+// Free-response fields (up to 150 characters each)
 export type IslandScenario =
   | "Cry" | "Explore the island for resources" | "Try to signal for help" | "Stay calm and make a plan";
 export type MusicalInstrument = "Guitar" | "Piccolo" | "Tuba" | "Saxophone" | "Flute" | "Clarinet";
@@ -55,10 +46,10 @@ export type Profile = {
   relationship_type?: RelationshipType;
   age_range_min: number;
   age_range_max: number;
-  interests: InterestOption[];
-  relationship_meaning: RelationshipValue[];
-  time_with_partner: TimeWithPartner[];
-  conflict_style?: ConflictStyle;
+  interests: string;
+  relationship_meaning: string;
+  time_with_partner: string;
+  conflict_style: string;
   island_scenario?: IslandScenario;
   musical_instrument?: MusicalInstrument;
   spending_habits?: SpendingHabit;
@@ -75,7 +66,7 @@ export type MatchDetail = {
   partner_name: string;
   partner_age?: number;
   compatibility_score?: number;
-  shared_interests: InterestOption[];
+  shared_interests: string[];
   status: MatchStatus;
   unlock_level: number;
 };

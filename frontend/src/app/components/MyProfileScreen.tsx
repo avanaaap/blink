@@ -82,8 +82,8 @@ export function MyProfileScreen() {
     {
       title: 'Compatibility Questions',
       fields: [
-        { label: 'Relationship Means', value: profile.relationship_meaning?.join(', ') || 'Not set' },
-        { label: 'Time With Partner', value: profile.time_with_partner?.join(', ') || 'Not set' },
+        { label: 'Relationship Means', value: profile.relationship_meaning || 'Not set' },
+        { label: 'Time With Partner', value: profile.time_with_partner || 'Not set' },
         { label: 'Conflict Style', value: profile.conflict_style || 'Not set' },
         { label: 'Island Scenario', value: profile.island_scenario || 'Not set' },
         { label: 'Musical Instrument', value: profile.musical_instrument || 'Not set' },
@@ -174,12 +174,8 @@ export function MyProfileScreen() {
             <div className="rounded-2xl border border-neutral-200 bg-[#faf7f3] p-4">
               <p className="text-xs uppercase tracking-wide text-neutral-500">Interests</p>
               <div className="mt-3 flex flex-wrap gap-2">
-                {profile.interests && profile.interests.length > 0 ? (
-                  profile.interests.map((interest) => (
-                    <span key={interest} className="rounded-full border border-neutral-300 bg-white px-3 py-1 text-xs text-neutral-700">
-                      {interest}
-                    </span>
-                  ))
+                {profile.interests ? (
+                  <span className="text-sm text-neutral-700">{profile.interests}</span>
                 ) : (
                   <span className="text-sm text-neutral-500">Not set</span>
                 )}

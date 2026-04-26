@@ -1,19 +1,15 @@
 from pydantic import BaseModel, Field
 
 from app.models.enums import (
-    ConflictStyle,
     DebtStatus,
     GenderIdentity,
     GenderOption,
-    InterestOption,
     IslandScenario,
     KidsPreference,
     MusicalInstrument,
     RelationshipType,
-    RelationshipValue,
     SexualityOption,
     SpendingHabit,
-    TimeWithPartner,
 )
 
 
@@ -31,10 +27,10 @@ class ProfileUpdate(BaseModel):
     relationship_type: RelationshipType | None = None
     age_range_min: int | None = None
     age_range_max: int | None = None
-    interests: list[InterestOption] | None = None
-    relationship_meaning: list[RelationshipValue] | None = None
-    time_with_partner: list[TimeWithPartner] | None = None
-    conflict_style: ConflictStyle | None = None
+    interests: str | None = Field(default=None, max_length=150)
+    relationship_meaning: str | None = Field(default=None, max_length=150)
+    time_with_partner: str | None = Field(default=None, max_length=150)
+    conflict_style: str | None = Field(default=None, max_length=150)
     island_scenario: IslandScenario | None = None
     musical_instrument: MusicalInstrument | None = None
     spending_habits: SpendingHabit | None = None
@@ -55,10 +51,10 @@ class ProfileResponse(BaseModel):
     relationship_type: RelationshipType | None = None
     age_range_min: int = 18
     age_range_max: int = 80
-    interests: list[InterestOption] = []
-    relationship_meaning: list[RelationshipValue] = []
-    time_with_partner: list[TimeWithPartner] = []
-    conflict_style: ConflictStyle | None = None
+    interests: str = ""
+    relationship_meaning: str = ""
+    time_with_partner: str = ""
+    conflict_style: str = ""
     island_scenario: IslandScenario | None = None
     musical_instrument: MusicalInstrument | None = None
     spending_habits: SpendingHabit | None = None

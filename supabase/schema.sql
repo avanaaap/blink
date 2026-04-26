@@ -1,10 +1,8 @@
 -- Enum types
 CREATE TYPE gender_option        AS ENUM ('Women', 'Men', 'Non-binary');
 CREATE TYPE relationship_type    AS ENUM ('Monogamy', 'Polyamory', 'Open to Either');
-CREATE TYPE interest_option      AS ENUM ('Travel', 'Music', 'Art', 'Sports', 'Cooking', 'Reading', 'Technology', 'Fitness', 'Movies', 'Photography', 'Gaming', 'Nature');
-CREATE TYPE relationship_value   AS ENUM ('Emotional support', 'Quality time', 'Trust & connection', 'Shared experiences', 'Commitment', 'Physical affection');
-CREATE TYPE time_with_partner    AS ENUM ('Mostly together', 'Balanced', 'Need personal space', 'Depends on the relationship');
-CREATE TYPE conflict_style       AS ENUM ('Talk it out right away', 'Take space, then come back to it', 'Avoid it / keep the peace');
+-- interest_option, relationship_value, time_with_partner, conflict_style
+-- enums removed — these fields are now free-response text (150 char max).
 CREATE TYPE island_scenario      AS ENUM ('Cry', 'Explore the island for resources', 'Try to signal for help', 'Stay calm and make a plan');
 CREATE TYPE musical_instrument   AS ENUM ('Guitar', 'Piccolo', 'Tuba', 'Saxophone', 'Flute', 'Clarinet');
 CREATE TYPE sexuality_option     AS ENUM ('Straight', 'Gay', 'Lesbian', 'Bisexual', 'Pansexual', 'Asexual', 'Prefer not to say');
@@ -26,10 +24,10 @@ CREATE TABLE IF NOT EXISTS profiles (
   relationship_type    relationship_type,
   age_range_min        integer DEFAULT 18,
   age_range_max        integer DEFAULT 80,
-  interests            interest_option[] DEFAULT '{}',
-  relationship_meaning relationship_value[] DEFAULT '{}',
-  time_with_partner    time_with_partner[] DEFAULT '{}',
-  conflict_style       conflict_style,
+  interests            text DEFAULT '' CHECK (char_length(interests) <= 150),
+  relationship_meaning text DEFAULT '' CHECK (char_length(relationship_meaning) <= 150),
+  time_with_partner    text DEFAULT '' CHECK (char_length(time_with_partner) <= 150),
+  conflict_style       text DEFAULT '' CHECK (char_length(conflict_style) <= 150),
   island_scenario      island_scenario,
   musical_instrument   musical_instrument,
   spending_habits      spending_habit,
@@ -59,7 +57,7 @@ CREATE TABLE IF NOT EXISTS matches (
   user_a              uuid NOT NULL REFERENCES profiles(id),
   user_b              uuid NOT NULL REFERENCES profiles(id),
   compatibility_score integer CHECK (compatibility_score BETWEEN 0 AND 100),
-  shared_interests    interest_option[] DEFAULT '{}',
+  shared_interests    text[] DEFAULT '{}',
   match_date          date NOT NULL DEFAULT CURRENT_DATE,
   status              match_status DEFAULT 'active',
   unlock_level        integer DEFAULT 0 CHECK (unlock_level BETWEEN 0 AND 3),
